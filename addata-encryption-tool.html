@@ -1,0 +1,1572 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdData Encryption Tool</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        /* Responsive design for larger screens */
+        @media (min-width: 1200px) {
+            .container {
+                padding: 40px 60px;
+            }
+        }
+
+        @media (min-width: 1600px) {
+            .container {
+                padding: 40px 120px;
+            }
+        }
+
+        @media (min-width: 2000px) {
+            .container {
+                padding: 40px 200px;
+            }
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+        }
+
+        .header {
+            padding: 20px 0;
+            border-bottom: 1px solid #ddd;
+            background: #f8f9fa;
+            margin: -20px -20px 20px -20px;
+        }
+
+        /* Responsive header padding */
+        @media (min-width: 1200px) {
+            .header {
+                margin: -40px -60px 30px -60px;
+                padding: 30px 60px;
+            }
+        }
+
+        @media (min-width: 1600px) {
+            .header {
+                margin: -40px -120px 30px -120px;
+                padding: 30px 120px;
+            }
+        }
+
+        @media (min-width: 2000px) {
+            .header {
+                margin: -40px -200px 30px -200px;
+                padding: 30px 200px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                margin: -15px -15px 20px -15px;
+                padding: 20px 15px;
+            }
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .password-section {
+            margin-bottom: 15px;
+        }
+
+        .password-section label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .password-section input {
+            width: 200px;
+            padding: 6px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .content {
+            flex: 1;
+            padding: 0;
+            margin-bottom: 20px;
+        }
+
+        .section {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            background: #fafafa;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            padding: 15px 20px;
+            background: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 8px 8px 0 0;
+            font-size: 15px;
+        }
+
+        /* Responsive section styling */
+        @media (min-width: 1200px) {
+            .section {
+                margin-bottom: 25px;
+            }
+
+            .section-header {
+                padding: 18px 25px;
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .section {
+                margin-bottom: 15px;
+                border-radius: 6px;
+            }
+
+            .section-header {
+                padding: 12px 15px;
+                font-size: 14px;
+                border-radius: 6px 6px 0 0;
+            }
+        }
+
+        .section-header:hover {
+            background: #e8e8e8;
+        }
+
+        .section-content {
+            padding: 20px;
+        }
+
+        /* Responsive section content */
+        @media (min-width: 1200px) {
+            .section-content {
+                padding: 25px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .section-content {
+                padding: 15px;
+            }
+        }
+
+        .ad-type-group {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            background: white;
+        }
+
+        .ad-type-header {
+            padding: 10px 12px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .ad-type-content {
+            padding: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+            color: #555;
+            font-size: 13px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        /* Responsive input sizing */
+        @media (min-width: 768px) {
+            .form-group input[type="text"],
+            .form-group input[type="number"] {
+                max-width: 400px;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .form-group input[type="text"],
+            .form-group input[type="number"] {
+                max-width: 500px;
+            }
+        }
+
+        .form-group input[type="checkbox"] {
+            margin-right: 6px;
+        }
+
+        .input-with-warning {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .warning-icon {
+            color: #ff9800;
+            font-size: 16px;
+        }
+
+        .warning-message {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin-top: 4px;
+            font-size: 12px;
+            color: #856404;
+        }
+
+        .array-section {
+            margin-top: 10px;
+        }
+
+        .array-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .array-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 12px;
+            border: 1px solid #ccc;
+            background: #f8f9fa;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .btn-small:hover {
+            background: #e9ecef;
+        }
+
+        .array-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .array-item input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        /* Responsive array item sizing */
+        @media (min-width: 768px) {
+            .array-item input {
+                max-width: 400px;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .array-item input {
+                max-width: 500px;
+            }
+        }
+
+        .actions {
+            padding: 20px 0;
+            border-top: 1px solid #ddd;
+            background: #f8f9fa;
+            margin: 20px -20px -20px -20px;
+        }
+
+        /* Responsive actions padding */
+        @media (min-width: 1200px) {
+            .actions {
+                margin: 30px -60px -40px -60px;
+                padding: 30px 60px;
+            }
+        }
+
+        @media (min-width: 1600px) {
+            .actions {
+                margin: 30px -120px -40px -120px;
+                padding: 30px 120px;
+            }
+        }
+
+        @media (min-width: 2000px) {
+            .actions {
+                margin: 30px -200px -40px -200px;
+                padding: 30px 200px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .actions {
+                margin: 20px -15px -15px -15px;
+                padding: 20px 15px;
+            }
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-right: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .results-section {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+
+        .results-header {
+            padding: 12px 15px;
+            background: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .results-content {
+            padding: 15px;
+        }
+
+        .result-textarea {
+            width: 100%;
+            height: 120px;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            background: white;
+            box-sizing: border-box;
+        }
+
+        /* Responsive textarea sizing */
+        @media (min-width: 768px) {
+            .result-textarea {
+                height: 150px;
+                font-size: 14px;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .result-textarea {
+                height: 180px;
+            }
+        }
+
+        .result-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible-content.expanded {
+            max-height: 2000px;
+        }
+
+        .toggle-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-icon.rotated {
+            transform: rotate(90deg);
+        }
+
+        .file-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-input-label {
+            background: #6c757d;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            border: none;
+        }
+
+        .file-input-label:hover {
+            background: #545b62;
+        }
+
+        .file-name {
+            font-size: 13px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .clear-button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .clear-button:hover {
+            background: #c82333;
+        }
+
+        .input-textarea {
+            width: 100%;
+            height: 100px;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            background: white;
+            box-sizing: border-box;
+        }
+
+        /* Responsive input textarea sizing */
+        @media (min-width: 768px) {
+            .input-textarea {
+                height: 120px;
+                font-size: 14px;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .input-textarea {
+                height: 140px;
+            }
+        }
+
+        .import-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .status-message {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .status-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .status-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .validation-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 10px 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 13px;
+        }
+
+        .validation-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 13px;
+        }
+
+        /* Custom styling for Import Data section */
+        .import-section {
+            border: 2px solid #007bff;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%);
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .import-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #007bff, #0056b3, #007bff);
+            background-size: 200% 100%;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .import-section-header {
+            padding: 18px 25px;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 10px 10px 0 0;
+            transition: all 0.3s ease;
+        }
+
+        .import-section-header:hover {
+            background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+            transform: translateY(-1px);
+        }
+
+        .import-section-header .toggle-icon {
+            color: white;
+            font-size: 18px;
+            transition: transform 0.3s ease;
+        }
+
+        .import-section-content {
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+
+        .import-highlight-box {
+            background: linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%);
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .import-highlight-box:hover {
+            border-color: #0056b3;
+            background: linear-gradient(135deg, #f0f8ff 0%, #e3f2fd 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+        }
+
+        .import-icon {
+            font-size: 24px;
+            color: #007bff;
+            margin-bottom: 10px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AdData Encryption Tool</h1>
+            <div class="password-section">
+                <label for="password">Encryption Password:</label>
+                <input type="password" id="password" value="ikame2099">
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Import Data Section -->
+            <div class="section import-section">
+                <div class="section-header import-section-header" onclick="toggleSection('import-data')">
+                    <span>📥 Import Data</span>
+                    <span class="toggle-icon" id="import-data-icon">▶</span>
+                </div>
+                <div class="collapsible-content" id="import-data-content">
+                    <div class="section-content import-section-content">
+                        <div class="import-highlight-box">
+                            <span class="import-icon">📁</span>
+                            <div class="form-group">
+                                <label><strong>Load from Encrypted File:</strong></label>
+                                <div class="file-input-group">
+                                    <input type="file" id="encrypted-file-input" class="file-input" accept=".txt" onchange="loadFromEncryptedFile()">
+                                    <label for="encrypted-file-input" class="file-input-label">Choose Encrypted File</label>
+                                    <span class="file-name" id="encrypted-file-name">No file selected</span>
+                                    <button class="clear-button" onclick="clearEncryptedFileInput()">Clear</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="import-highlight-box">
+                            <span class="import-icon">📋</span>
+                            <div class="form-group">
+                                <label><strong>Or paste encrypted data:</strong></label>
+                                <textarea class="input-textarea" id="import-encrypted-data" placeholder="Paste your encrypted AdData here..."></textarea>
+                                <button class="clear-button" onclick="clearImportTextarea()">Clear</button>
+                            </div>
+                        </div>
+
+                        <div class="import-actions" style="text-align: center; margin-top: 20px;">
+                            <button class="btn-secondary" onclick="importEncryptedData()" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,123,255,0.3);">🔓 Import Encrypted Data</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Identifier Section -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('project-identifier')">
+                    <span>Project Identifier</span>
+                    <span class="toggle-icon" id="project-identifier-icon">▼</span>
+                </div>
+                <div class="collapsible-content expanded" id="project-identifier-content">
+                    <div class="section-content">
+                        <div class="form-group">
+                            <label>Project Name</label>
+                            <input type="text" id="projectname" placeholder="Enter project name" value="MyProject">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Default Configuration Section -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('default-config')">
+                    <span>Default Configuration</span>
+                    <span class="toggle-icon" id="default-config-icon">▶</span>
+                </div>
+                <div class="collapsible-content expanded" id="default-config-content">
+                    <div class="section-content">
+                        <div class="ad-type-group">
+                            <div class="ad-type-header">🎯 Interstitial</div>
+                            <div class="ad-type-content">
+                                <div class="form-group">
+                                    <label>Default ID</label>
+                                    <div class="input-with-warning">
+                                        <input type="text" id="DII" placeholder="Enter interstitial ID" oninput="validateAdUnitId(this, 'Default Interstitial ID')">
+                                        <span class="warning-icon hidden" id="DII-warning">⚠️</span>
+                                    </div>
+                                    <div class="warning-message hidden" id="DII-message">Default Interstitial ID must be exactly 16 characters and contain only lowercase letters and numbers.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ad-type-group">
+                            <div class="ad-type-header">🎁 Rewarded</div>
+                            <div class="ad-type-content">
+                                <div class="form-group">
+                                    <label>Default ID</label>
+                                    <div class="input-with-warning">
+                                        <input type="text" id="DRI" placeholder="Enter rewarded ID" oninput="validateAdUnitId(this, 'Default Rewarded ID')">
+                                        <span class="warning-icon hidden" id="DRI-warning">⚠️</span>
+                                    </div>
+                                    <div class="warning-message hidden" id="DRI-message">Default Rewarded ID must be exactly 16 characters and contain only lowercase letters and numbers.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ad-type-group">
+                            <div class="ad-type-header">📱 Banner</div>
+                            <div class="ad-type-content">
+                                <div class="form-group">
+                                    <label>Default ID</label>
+                                    <div class="input-with-warning">
+                                        <input type="text" id="DBI" placeholder="Enter banner ID" oninput="validateAdUnitId(this, 'Default Banner ID')">
+                                        <span class="warning-icon hidden" id="DBI-warning">⚠️</span>
+                                    </div>
+                                    <div class="warning-message hidden" id="DBI-message">Default Banner ID must be exactly 16 characters and contain only lowercase letters and numbers.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bidfloor Configuration Section -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('bidfloor-config')">
+                    <span>Bidfloor Configuration</span>
+                    <span class="toggle-icon" id="bidfloor-config-icon">▶</span>
+                </div>
+                <div class="collapsible-content expanded" id="bidfloor-config-content">
+                    <div class="section-content" id="bidfloor-content">
+                        <!-- Bidfloor content will be generated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <div id="validation-status" class="hidden"></div>
+            <button class="btn-primary" onclick="encryptData()">Encrypt</button>
+        </div>
+
+        <!-- Results Section (initially hidden) -->
+        <div class="results-section hidden" id="results-section">
+            <div class="results-header">Encrypted Result:</div>
+            <div class="results-content">
+                <textarea class="result-textarea" id="encrypted-result" readonly></textarea>
+                <div class="result-actions">
+                    <button class="btn-secondary" onclick="copyToClipboard()">Copy to Clipboard</button>
+                    <button class="btn-secondary" onclick="exportToFile()">Export to File</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        // AdData structure matching the Unity class
+        const adData = {
+            DII: '',
+            DRI: '',
+            DBI: '',
+            BFID: '',
+            BFIBFS: [],
+            BFILC: 3,
+            BFIAR: false,
+            BFIARI: 99999,
+            BFRD: '',
+            BFRBFS: [],
+            BFRLC: 3,
+            BFRAR: false,
+            BFRARI: 99999,
+            BFB: ''
+        };
+
+        // MAX ad unit ID validation pattern
+        const maxAdUnitIdPattern = /^[a-z0-9]{16}$/;
+
+        function isValidMaxAdUnitId(id) {
+            return id && maxAdUnitIdPattern.test(id);
+        }
+
+        function validateAdUnitId(input, fieldName) {
+            const id = input.value;
+            const warningIcon = document.getElementById(input.id + '-warning');
+            const warningMessage = document.getElementById(input.id + '-message');
+
+            if (id && !isValidMaxAdUnitId(id)) {
+                warningIcon.classList.remove('hidden');
+                warningMessage.classList.remove('hidden');
+            } else {
+                warningIcon.classList.add('hidden');
+                warningMessage.classList.add('hidden');
+            }
+
+            // Update validation status
+            updateValidationStatus();
+        }
+
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId + '-content');
+            const icon = document.getElementById(sectionId + '-icon');
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                icon.textContent = '▶';
+                icon.classList.remove('rotated');
+            } else {
+                content.classList.add('expanded');
+                icon.textContent = '▼';
+                icon.classList.add('rotated');
+            }
+        }
+
+        // Initialize bidfloor configuration
+        function initializeBidfloorConfig() {
+            const bidfloorContent = document.getElementById('bidfloor-content');
+            bidfloorContent.innerHTML = `
+                <!-- Bidfloor Interstitial Group -->
+                <div class="ad-type-group">
+                    <div class="ad-type-header">🎯 Interstitial Bidfloor</div>
+                    <div class="ad-type-content">
+                        <div class="form-group">
+                            <label>Default ID</label>
+                            <div class="input-with-warning">
+                                <input type="text" id="BFID" placeholder="Enter bidfloor interstitial ID" oninput="validateAdUnitId(this, 'Bidfloor Interstitial ID')">
+                                <span class="warning-icon hidden" id="BFID-warning">⚠️</span>
+                            </div>
+                            <div class="warning-message hidden" id="BFID-message">Bidfloor Interstitial ID must be exactly 16 characters and contain only lowercase letters and numbers.</div>
+                        </div>
+                        
+                        <div class="array-section">
+                            <div class="array-header">
+                                <label>Bidfloor IDs:</label>
+                                <div class="array-controls">
+                                    <button class="btn-small" onclick="addArrayItem('BFIBFS')">+</button>
+                                    <button class="btn-small" onclick="removeArrayItem('BFIBFS')">-</button>
+                                </div>
+                                <span>Count: <span id="BFIBFS-count">0</span></span>
+                            </div>
+                            <div id="BFIBFS-container"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Load Count</label>
+                            <input type="number" id="BFILC" value="3" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" id="BFIAR"> Auto Retry</label>
+                        </div>
+                        <div class="form-group">
+                            <label>Auto Reload Interval</label>
+                            <input type="number" id="BFIARI" value="99999" min="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bidfloor Rewarded Group -->
+                <div class="ad-type-group">
+                    <div class="ad-type-header">🎁 Rewarded Bidfloor</div>
+                    <div class="ad-type-content">
+                        <div class="form-group">
+                            <label>Default ID</label>
+                            <div class="input-with-warning">
+                                <input type="text" id="BFRD" placeholder="Enter bidfloor rewarded ID" oninput="validateAdUnitId(this, 'Bidfloor Rewarded ID')">
+                                <span class="warning-icon hidden" id="BFRD-warning">⚠️</span>
+                            </div>
+                            <div class="warning-message hidden" id="BFRD-message">Bidfloor Rewarded ID must be exactly 16 characters and contain only lowercase letters and numbers.</div>
+                        </div>
+                        
+                        <div class="array-section">
+                            <div class="array-header">
+                                <label>Bidfloor IDs:</label>
+                                <div class="array-controls">
+                                    <button class="btn-small" onclick="addArrayItem('BFRBFS')">+</button>
+                                    <button class="btn-small" onclick="removeArrayItem('BFRBFS')">-</button>
+                                </div>
+                                <span>Count: <span id="BFRBFS-count">0</span></span>
+                            </div>
+                            <div id="BFRBFS-container"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Load Count</label>
+                            <input type="number" id="BFRLC" value="3" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" id="BFRAR"> Auto Retry</label>
+                        </div>
+                        <div class="form-group">
+                            <label>Auto Reload Interval</label>
+                            <input type="number" id="BFRARI" value="99999" min="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bidfloor Banner Group -->
+                <div class="ad-type-group">
+                    <div class="ad-type-header">📱 Banner Bidfloor</div>
+                    <div class="ad-type-content">
+                        <div class="form-group">
+                            <label>Default ID</label>
+                            <div class="input-with-warning">
+                                <input type="text" id="BFB" placeholder="Enter bidfloor banner ID" oninput="validateAdUnitId(this, 'Bidfloor Banner ID')">
+                                <span class="warning-icon hidden" id="BFB-warning">⚠️</span>
+                            </div>
+                            <div class="warning-message hidden" id="BFB-message">Bidfloor Banner ID must be exactly 16 characters and contain only lowercase letters and numbers.</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Array management functions
+        function addArrayItem(arrayName) {
+            const container = document.getElementById(arrayName + '-container');
+            const count = adData[arrayName].length;
+
+            adData[arrayName].push('');
+
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'array-item';
+            itemDiv.id = arrayName + '-item-' + count;
+
+            itemDiv.innerHTML = `
+                <span>[${count}]</span>
+                <div class="input-with-warning">
+                    <input type="text" id="${arrayName}-${count}" placeholder="Enter ad unit ID"
+                           oninput="validateArrayItem(this, '${arrayName}', ${count})">
+                    <span class="warning-icon hidden" id="${arrayName}-${count}-warning">⚠️</span>
+                </div>
+            `;
+
+            container.appendChild(itemDiv);
+
+            // Add warning message div
+            const warningDiv = document.createElement('div');
+            warningDiv.className = 'warning-message hidden';
+            warningDiv.id = arrayName + '-' + count + '-message';
+            warningDiv.textContent = `${arrayName} ID [${count}] must be exactly 16 characters and contain only lowercase letters and numbers.`;
+            container.appendChild(warningDiv);
+
+            updateArrayCount(arrayName);
+            updateValidationStatus();
+        }
+
+        function removeArrayItem(arrayName) {
+            if (adData[arrayName].length === 0) return;
+
+            const container = document.getElementById(arrayName + '-container');
+            const lastIndex = adData[arrayName].length - 1;
+
+            // Remove the last item and its warning message
+            const itemDiv = document.getElementById(arrayName + '-item-' + lastIndex);
+            const warningDiv = document.getElementById(arrayName + '-' + lastIndex + '-message');
+
+            if (itemDiv) container.removeChild(itemDiv);
+            if (warningDiv) container.removeChild(warningDiv);
+
+            adData[arrayName].pop();
+            updateArrayCount(arrayName);
+            updateValidationStatus();
+        }
+
+        function updateArrayCount(arrayName) {
+            const countSpan = document.getElementById(arrayName + '-count');
+            if (countSpan) {
+                countSpan.textContent = adData[arrayName].length;
+            }
+        }
+
+        function validateArrayItem(input, arrayName, index) {
+            const id = input.value;
+            const warningIcon = document.getElementById(arrayName + '-' + index + '-warning');
+            const warningMessage = document.getElementById(arrayName + '-' + index + '-message');
+
+            // Update the data array
+            adData[arrayName][index] = id;
+
+            if (id && !isValidMaxAdUnitId(id)) {
+                warningIcon.classList.remove('hidden');
+                warningMessage.classList.remove('hidden');
+            } else {
+                warningIcon.classList.add('hidden');
+                warningMessage.classList.add('hidden');
+            }
+
+            // Update validation status
+            updateValidationStatus();
+        }
+
+        // Collect form data into adData object
+        function collectFormData() {
+            // Project name
+            adData.projectname = document.getElementById('projectname').value || 'MyProject';
+
+            // Basic fields
+            adData.DII = document.getElementById('DII').value || '';
+            adData.DRI = document.getElementById('DRI').value || '';
+            adData.DBI = document.getElementById('DBI').value || '';
+            adData.BFID = document.getElementById('BFID').value || '';
+            adData.BFRD = document.getElementById('BFRD').value || '';
+            adData.BFB = document.getElementById('BFB').value || '';
+
+            // Numeric fields
+            adData.BFILC = parseInt(document.getElementById('BFILC').value) || 3;
+            adData.BFIARI = parseInt(document.getElementById('BFIARI').value) || 99999;
+            adData.BFRLC = parseInt(document.getElementById('BFRLC').value) || 3;
+            adData.BFRARI = parseInt(document.getElementById('BFRARI').value) || 99999;
+
+            // Boolean fields
+            adData.BFIAR = document.getElementById('BFIAR').checked;
+            adData.BFRAR = document.getElementById('BFRAR').checked;
+
+            // Arrays are already updated in validateArrayItem
+        }
+
+        // Comprehensive validation function
+        function validateDataForExport() {
+            const errors = [];
+            const warnings = [];
+
+            // Check for empty/invalid basic fields
+            const basicFields = [
+                { id: adData.DII, name: 'Default Interstitial ID', required: true },
+                { id: adData.DRI, name: 'Default Rewarded ID', required: true },
+                { id: adData.DBI, name: 'Default Banner ID', required: true },
+                { id: adData.BFID, name: 'Bidfloor Interstitial ID', required: false },
+                { id: adData.BFRD, name: 'Bidfloor Rewarded ID', required: false },
+                { id: adData.BFB, name: 'Bidfloor Banner ID', required: false }
+            ];
+
+            basicFields.forEach(field => {
+                if (field.required && (!field.id || field.id.trim() === '')) {
+                    errors.push(`${field.name} is required and cannot be empty`);
+                } else if (field.id && field.id.trim() !== '' && !isValidMaxAdUnitId(field.id)) {
+                    warnings.push(`${field.name}: ${field.id} (invalid format)`);
+                }
+            });
+
+            // Check bidfloor arrays - they should not be empty if bidfloor IDs are provided
+            if (adData.BFID && adData.BFID.trim() !== '') {
+                if (!adData.BFIBFS || adData.BFIBFS.length === 0) {
+                    errors.push('Bidfloor Interstitial ID array (BFIBFS) cannot be empty when Bidfloor Interstitial ID is provided');
+                } else {
+                    // Check for empty items in the array
+                    const emptyItems = adData.BFIBFS.filter((id, index) => !id || id.trim() === '');
+                    if (emptyItems.length > 0) {
+                        errors.push(`Bidfloor Interstitial ID array contains ${emptyItems.length} empty item(s)`);
+                    }
+
+                    // Check for invalid items in the array
+                    adData.BFIBFS.forEach((id, index) => {
+                        if (id && id.trim() !== '' && !isValidMaxAdUnitId(id)) {
+                            warnings.push(`BF Interstitial ID [${index}]: ${id} (invalid format)`);
+                        }
+                    });
+                }
+            }
+
+            if (adData.BFRD && adData.BFRD.trim() !== '') {
+                if (!adData.BFRBFS || adData.BFRBFS.length === 0) {
+                    errors.push('Bidfloor Rewarded ID array (BFRBFS) cannot be empty when Bidfloor Rewarded ID is provided');
+                } else {
+                    // Check for empty items in the array
+                    const emptyItems = adData.BFRBFS.filter((id, index) => !id || id.trim() === '');
+                    if (emptyItems.length > 0) {
+                        errors.push(`Bidfloor Rewarded ID array contains ${emptyItems.length} empty item(s)`);
+                    }
+
+                    // Check for invalid items in the array
+                    adData.BFRBFS.forEach((id, index) => {
+                        if (id && id.trim() !== '' && !isValidMaxAdUnitId(id)) {
+                            warnings.push(`BF Rewarded ID [${index}]: ${id} (invalid format)`);
+                        }
+                    });
+                }
+            }
+
+            return { errors, warnings };
+        }
+
+        // Legacy function for backward compatibility
+        function validateAllAdUnitIds() {
+            const validation = validateDataForExport();
+            return validation.warnings;
+        }
+
+        // Update validation status display
+        function updateValidationStatus() {
+            collectFormData();
+            const validation = validateDataForExport();
+            const statusDiv = document.getElementById('validation-status');
+
+            if (validation.errors.length === 0 && validation.warnings.length === 0) {
+                statusDiv.classList.add('hidden');
+                return;
+            }
+
+            statusDiv.classList.remove('hidden');
+            let statusHtml = '';
+
+            if (validation.errors.length > 0) {
+                statusHtml += `<div class="validation-error">
+                    <strong>❌ Errors (Export blocked):</strong><br>
+                    • ${validation.errors.join('<br>• ')}
+                </div>`;
+            }
+
+            if (validation.warnings.length > 0) {
+                statusHtml += `<div class="validation-warning">
+                    <strong>⚠️ Warnings (Invalid format):</strong><br>
+                    • ${validation.warnings.join('<br>• ')}
+                </div>`;
+            }
+
+            statusDiv.innerHTML = statusHtml;
+        }
+
+        // AES Encryption functions (matching Unity AdEnc implementation)
+        function deriveKey(password, salt) {
+            return CryptoJS.PBKDF2(password, salt, {
+                keySize: 256/32, // 256 bits = 8 words of 32 bits each
+                iterations: 10000
+            });
+        }
+
+        function encrypt(plainText, password) {
+            if (!plainText || !password) {
+                throw new Error('Plain text and password cannot be empty');
+            }
+
+            // Generate random salt and IV (same sizes as Unity implementation)
+            const salt = CryptoJS.lib.WordArray.random(16); // 16 bytes = 128 bits
+            const iv = CryptoJS.lib.WordArray.random(16);   // 16 bytes = 128 bits
+
+            // Derive key from password and salt
+            const key = deriveKey(password, salt);
+
+            // Encrypt the data
+            const encrypted = CryptoJS.AES.encrypt(plainText, key, {
+                iv: iv,
+                mode: CryptoJS.mode.CBC,
+                padding: CryptoJS.pad.Pkcs7
+            });
+
+            // Combine salt + IV + encrypted data (same format as Unity)
+            const combined = salt.concat(iv).concat(encrypted.ciphertext);
+
+            return CryptoJS.enc.Base64.stringify(combined);
+        }
+
+        function decrypt(cipherText, password) {
+            if (!cipherText || !password) {
+                throw new Error('Cipher text and password cannot be empty');
+            }
+
+            try {
+                // Decode from Base64
+                const combined = CryptoJS.enc.Base64.parse(cipherText);
+
+                // Extract salt (first 16 bytes), IV (next 16 bytes), and encrypted data
+                const salt = CryptoJS.lib.WordArray.create(combined.words.slice(0, 4)); // 16 bytes = 4 words
+                const iv = CryptoJS.lib.WordArray.create(combined.words.slice(4, 8));   // 16 bytes = 4 words
+                const encryptedData = CryptoJS.lib.WordArray.create(combined.words.slice(8));
+
+                // Derive key from password and salt
+                const key = deriveKey(password, salt);
+
+                // Decrypt the data
+                const decrypted = CryptoJS.AES.decrypt(
+                    CryptoJS.lib.CipherParams.create({ ciphertext: encryptedData }),
+                    key,
+                    {
+                        iv: iv,
+                        mode: CryptoJS.mode.CBC,
+                        padding: CryptoJS.pad.Pkcs7
+                    }
+                );
+
+                return decrypted.toString(CryptoJS.enc.Utf8);
+            } catch (error) {
+                throw new Error('Failed to decrypt data: ' + error.message);
+            }
+        }
+
+        // Main encryption function
+        function encryptData() {
+            collectFormData();
+
+            // Comprehensive validation
+            const validation = validateDataForExport();
+
+            // Check for critical errors that prevent export
+            if (validation.errors.length > 0) {
+                const errorMessage = `❌ Cannot export data due to the following errors:\n\n• ${validation.errors.join('\n• ')}\n\nPlease fix these issues before proceeding.`;
+                alert(errorMessage);
+                console.error('Export prevented due to validation errors:', validation.errors);
+                return;
+            }
+
+            // Check for warnings (invalid format but not empty)
+            if (validation.warnings.length > 0) {
+                const proceed = confirm(
+                    `⚠️ The following ad unit IDs have invalid format (must be 16 characters, lowercase letters and numbers only):\n\n• ${validation.warnings.join('\n• ')}\n\nDo you want to proceed with encryption anyway?`
+                );
+
+                if (!proceed) {
+                    console.warn('Encryption cancelled due to invalid ad unit ID formats');
+                    return;
+                }
+            }
+
+            try {
+                const password = document.getElementById('password').value;
+                if (!password) {
+                    alert('Password cannot be empty');
+                    return;
+                }
+
+                // Step 1: Serialize AdData to JSON (matching Unity's JsonUtility.ToJson with prettyPrint=true)
+                const json = JSON.stringify(adData, null, 4);
+                console.log('AdData serialized to JSON successfully');
+
+                // Step 2: Encrypt the JSON
+                const encryptedResult = encrypt(json, password);
+                console.log('JSON data encrypted successfully');
+
+                // Display results
+                document.getElementById('encrypted-result').value = encryptedResult;
+                document.getElementById('results-section').classList.remove('hidden');
+
+                if (validation.warnings.length > 0) {
+                    console.warn(`Encryption completed with ${validation.warnings.length} invalid ad unit ID format(s). Please review and correct them.`);
+                }
+            } catch (error) {
+                console.error('Failed to encrypt data:', error.message);
+                alert('Failed to encrypt data: ' + error.message);
+            }
+        }
+
+        // Copy to clipboard function
+        function copyToClipboard() {
+            const resultTextarea = document.getElementById('encrypted-result');
+            if (!resultTextarea.value) {
+                alert('No encrypted data to copy. Please encrypt data first.');
+                return;
+            }
+
+            // Additional validation before copy
+            collectFormData();
+            const validation = validateDataForExport();
+
+            if (validation.errors.length > 0) {
+                const errorMessage = `❌ Cannot copy data due to validation errors:\n\n• ${validation.errors.join('\n• ')}\n\nPlease fix these issues before copying.`;
+                alert(errorMessage);
+                return;
+            }
+
+            try {
+                resultTextarea.select();
+                document.execCommand('copy');
+                console.log('Encrypted data copied to clipboard successfully');
+
+                // Show temporary feedback
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            } catch (error) {
+                console.error('Failed to copy to clipboard:', error.message);
+                alert('Failed to copy to clipboard: ' + error.message);
+            }
+        }
+
+        // Export to file function
+        function exportToFile() {
+            const resultTextarea = document.getElementById('encrypted-result');
+            if (!resultTextarea.value) {
+                alert('No encrypted data to export. Please encrypt data first.');
+                return;
+            }
+
+            // Additional validation before export
+            collectFormData();
+            const validation = validateDataForExport();
+
+            if (validation.errors.length > 0) {
+                const errorMessage = `❌ Cannot export data due to validation errors:\n\n• ${validation.errors.join('\n• ')}\n\nPlease fix these issues before exporting.`;
+                alert(errorMessage);
+                return;
+            }
+
+            try {
+                const blob = new Blob([resultTextarea.value], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+
+                // Get project name for filename
+                const projectName = document.getElementById('projectname').value || 'MyProject';
+                const filename = `${projectName}_addata_encrypted.txt`;
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                URL.revokeObjectURL(url);
+                console.log('Encrypted data exported to file successfully');
+            } catch (error) {
+                console.error('Failed to export file:', error.message);
+                alert('Failed to export file: ' + error.message);
+            }
+        }
+
+        // Import data functions
+        function loadFromEncryptedFile() {
+            const fileInput = document.getElementById('encrypted-file-input');
+            const fileName = document.getElementById('encrypted-file-name');
+            const encryptedDataTextarea = document.getElementById('import-encrypted-data');
+
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                fileName.textContent = file.name;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    encryptedDataTextarea.value = e.target.result;
+                };
+                reader.readAsText(file);
+            } else {
+                fileName.textContent = 'No file selected';
+            }
+        }
+
+        function clearEncryptedFileInput() {
+            document.getElementById('encrypted-file-input').value = '';
+            document.getElementById('encrypted-file-name').textContent = 'No file selected';
+        }
+
+        function clearImportTextarea() {
+            document.getElementById('import-encrypted-data').value = '';
+        }
+
+        function showStatusMessage(message, type) {
+            // Remove existing status messages
+            const existingMessages = document.querySelectorAll('.status-message');
+            existingMessages.forEach(msg => msg.remove());
+
+            // Create new status message
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status-message status-${type}`;
+            statusDiv.textContent = message;
+
+            // Add to import section
+            const importSection = document.getElementById('import-data-content');
+            const importContent = importSection.querySelector('.section-content');
+            importContent.appendChild(statusDiv);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (statusDiv.parentNode) {
+                    statusDiv.parentNode.removeChild(statusDiv);
+                }
+            }, 5000);
+        }
+
+        function importEncryptedData() {
+            const encryptedData = document.getElementById('import-encrypted-data').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!encryptedData) {
+                showStatusMessage('No encrypted data to import. Please load a file or paste encrypted data.', 'error');
+                return;
+            }
+
+            if (!password) {
+                showStatusMessage('Password cannot be empty', 'error');
+                return;
+            }
+
+            try {
+                // Decrypt the data
+                const decryptedJson = decrypt(encryptedData, password);
+
+                // Parse and populate form
+                const importedData = JSON.parse(decryptedJson);
+                populateFormWithData(importedData);
+
+                showStatusMessage('✅ Encrypted data imported and decrypted successfully!', 'success');
+                console.log('Encrypted data imported successfully');
+
+            } catch (error) {
+                console.error('Failed to import encrypted data:', error.message);
+                showStatusMessage('❌ Failed to import encrypted data: ' + error.message, 'error');
+            }
+        }
+
+        function populateFormWithData(data) {
+            // Clear existing arrays first
+            adData.BFIBFS = [];
+            adData.BFRBFS = [];
+
+            // Clear existing array UI
+            document.getElementById('BFIBFS-container').innerHTML = '';
+            document.getElementById('BFRBFS-container').innerHTML = '';
+
+            // Populate project name
+            const projectNameElement = document.getElementById('projectname');
+            if (projectNameElement && data.projectname !== undefined) {
+                projectNameElement.value = data.projectname || 'MyProject';
+            }
+
+            // Populate basic fields
+            const basicFields = ['DII', 'DRI', 'DBI', 'BFID', 'BFRD', 'BFB'];
+            basicFields.forEach(field => {
+                const element = document.getElementById(field);
+                if (element && data[field] !== undefined) {
+                    element.value = data[field] || '';
+                    // Trigger validation
+                    validateAdUnitId(element, field);
+                }
+            });
+
+            // Populate numeric fields
+            const numericFields = ['BFILC', 'BFIARI', 'BFRLC', 'BFRARI'];
+            numericFields.forEach(field => {
+                const element = document.getElementById(field);
+                if (element && data[field] !== undefined) {
+                    element.value = data[field] || (field.includes('ARI') ? 99999 : 3);
+                }
+            });
+
+            // Populate boolean fields
+            const booleanFields = ['BFIAR', 'BFRAR'];
+            booleanFields.forEach(field => {
+                const element = document.getElementById(field);
+                if (element && data[field] !== undefined) {
+                    element.checked = data[field] || false;
+                }
+            });
+
+            // Populate arrays
+            if (data.BFIBFS && Array.isArray(data.BFIBFS)) {
+                data.BFIBFS.forEach((item, index) => {
+                    addArrayItem('BFIBFS');
+                    const input = document.getElementById(`BFIBFS-${index}`);
+                    if (input) {
+                        input.value = item || '';
+                        validateArrayItem(input, 'BFIBFS', index);
+                    }
+                });
+            }
+
+            if (data.BFRBFS && Array.isArray(data.BFRBFS)) {
+                data.BFRBFS.forEach((item, index) => {
+                    addArrayItem('BFRBFS');
+                    const input = document.getElementById(`BFRBFS-${index}`);
+                    if (input) {
+                        input.value = item || '';
+                        validateArrayItem(input, 'BFRBFS', index);
+                    }
+                });
+            }
+
+            // Update the global adData object
+            Object.assign(adData, data);
+
+            console.log('Form populated with imported data:', data);
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeBidfloorConfig();
+            // Set initial toggle states
+            document.getElementById('import-data-icon').textContent = '▶';
+            document.getElementById('default-config-icon').textContent = '▼';
+            document.getElementById('default-config-icon').classList.add('rotated');
+            document.getElementById('bidfloor-config-icon').textContent = '▼';
+            document.getElementById('bidfloor-config-icon').classList.add('rotated');
+
+            // Add event listeners for real-time validation
+            const basicFields = ['DII', 'DRI', 'DBI', 'BFID', 'BFRD', 'BFB'];
+            basicFields.forEach(fieldId => {
+                const element = document.getElementById(fieldId);
+                if (element) {
+                    element.addEventListener('input', updateValidationStatus);
+                    element.addEventListener('blur', updateValidationStatus);
+                }
+            });
+
+            // Initial validation status update
+            setTimeout(updateValidationStatus, 100);
+        });
+    </script>
+</body>
+</html>
