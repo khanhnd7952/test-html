@@ -55,6 +55,80 @@ class ProjectDatabase {
 // Global database instance
 const projectDB = new ProjectDatabase();
 
+// Ad ID Validation Functions
+function isValidAdId(id) {
+    // MAX Ad ID format: exactly 16 characters, lowercase letters and numbers only
+    const adIdRegex = /^[a-z0-9]{16}$/;
+    return adIdRegex.test(id);
+}
+
+function validateAdId(input) {
+    const value = input.value.trim();
+    const messageElement = input.nextElementSibling;
+
+    // Remove existing validation classes
+    input.classList.remove('input-valid', 'input-invalid');
+
+    if (value === '') {
+        // Empty is allowed, show info message
+        messageElement.textContent = 'Format: 16 ký tự (chữ thường a-z và số 0-9)';
+        messageElement.className = 'validation-message validation-info';
+        return true;
+    }
+
+    if (isValidAdId(value)) {
+        // Valid ID
+        input.classList.add('input-valid');
+        messageElement.textContent = '✅ ID hợp lệ';
+        messageElement.className = 'validation-message validation-success';
+        return true;
+    } else {
+        // Invalid ID
+        input.classList.add('input-invalid');
+        if (value.length !== 16) {
+            messageElement.textContent = `❌ Phải có đúng 16 ký tự (hiện tại: ${value.length})`;
+        } else {
+            messageElement.textContent = '❌ Chỉ được chứa chữ thường (a-z) và số (0-9)';
+        }
+        messageElement.className = 'validation-message validation-error';
+        return false;
+    }
+}
+
+function validateAllAdIds() {
+    const adIdInputs = document.querySelectorAll('input[type="text"][maxlength="16"]');
+    let allValid = true;
+
+    adIdInputs.forEach(input => {
+        const value = input.value.trim();
+        if (value !== '' && !isValidAdId(value)) {
+            allValid = false;
+        }
+    });
+
+    return allValid;
+}
+
+function getInvalidAdIds() {
+    const adIdInputs = document.querySelectorAll('input[type="text"][maxlength="16"]');
+    const invalidIds = [];
+
+    adIdInputs.forEach(input => {
+        const value = input.value.trim();
+        if (value !== '' && !isValidAdId(value)) {
+            const label = input.parentElement.querySelector('label');
+            const fieldName = label ? label.textContent.replace(':', '') : 'Unknown field';
+            invalidIds.push({
+                field: fieldName,
+                value: value,
+                element: input
+            });
+        }
+    });
+
+    return invalidIds;
+}
+
 // Utility functions for managing bidfloor ID arrays
 function addBidfloorId(type, button) {
     const container = document.getElementById(`${type}BidfloorIds`);
@@ -76,7 +150,7 @@ function addBidfloorId(type, button) {
     const newInput = document.createElement('div');
     newInput.className = 'array-input';
     newInput.innerHTML = `
-        <input type="text" placeholder="Nhập Bidfloor ID">
+        <input type="text" placeholder="Ví dụ: a1b2c3d4e5f6g7h8" maxlength="16" oninput="validateAdId(this)" onblur="validateAdId(this)">
         <button type="button" class="btn btn-add" onclick="addBidfloorId('${type}', this)">Thêm</button>
     `;
     container.appendChild(newInput);
@@ -100,7 +174,7 @@ function removeBidfloorId(button) {
         const type = container.id.includes('interstitial') ? 'interstitial' : 'rewarded';
         container.innerHTML = `
             <div class="array-input">
-                <input type="text" placeholder="Nhập Bidfloor ID">
+                <input type="text" placeholder="Ví dụ: a1b2c3d4e5f6g7h8" maxlength="16" oninput="validateAdId(this)" onblur="validateAdId(this)">
                 <button type="button" class="btn btn-add" onclick="addBidfloorId('${type}', this)">Thêm</button>
             </div>
         `;
@@ -159,6 +233,25 @@ function createAdUnitData(interstitialId, rewardedVideoId, bannerId, aoaId) {
 // Main function to generate JSON
 function generateJSON() {
     try {
+        // Validate all Ad IDs first
+        const invalidIds = getInvalidAdIds();
+        if (invalidIds.length > 0) {
+            let errorMessage = '❌ Có ID không hợp lệ:\n\n';
+            invalidIds.forEach(invalid => {
+                errorMessage += `• ${invalid.field}: "${invalid.value}"\n`;
+            });
+            errorMessage += '\nVui lòng sửa các ID không hợp lệ trước khi tạo JSON.';
+
+            showMessage('❌ Không thể tạo JSON do có ID không hợp lệ!', 'error');
+            alert(errorMessage);
+
+            // Focus on first invalid input
+            if (invalidIds[0].element) {
+                invalidIds[0].element.focus();
+            }
+            return;
+        }
+
         // Get DefaultAdUnitData values
         const interstitialId = document.getElementById('interstitialId').value;
         const rewardedVideoId = document.getElementById('rewardedVideoId').value;
@@ -182,24 +275,26 @@ function generateJSON() {
         // Get BidfloorBanner value
         const bidfloorBanner = document.getElementById('bidfloorBanner').value;
 
-        // Create the complete AdData object
+        // Create the complete AdData object with new structure
         const adData = {
             DefaultAdUnitData: createAdUnitData(interstitialId, rewardedVideoId, bannerId, aoaId),
-            BidfloorInterstitial: createBFSuperAdUnitConfig(
-                interstitialDefaultId,
-                interstitialBidfloorIds,
-                interstitialLoadCount,
-                interstitialAutoRetry,
-                interstitialAutoReloadInterval
-            ),
-            BidfloorRewarded: createBFSuperAdUnitConfig(
-                rewardedDefaultId,
-                rewardedBidfloorIds,
-                rewardedLoadCount,
-                rewardedAutoRetry,
-                rewardedAutoReloadInterval
-            ),
-            BidfloorBanner: bidfloorBanner || ""
+            BidfloorConfig: {
+                Interstitial: createBFSuperAdUnitConfig(
+                    interstitialDefaultId,
+                    interstitialBidfloorIds,
+                    interstitialLoadCount,
+                    interstitialAutoRetry,
+                    interstitialAutoReloadInterval
+                ),
+                Rewarded: createBFSuperAdUnitConfig(
+                    rewardedDefaultId,
+                    rewardedBidfloorIds,
+                    rewardedLoadCount,
+                    rewardedAutoRetry,
+                    rewardedAutoReloadInterval
+                ),
+                Banner: bidfloorBanner || ""
+            }
         };
 
         // Convert to JSON with proper formatting
@@ -224,10 +319,29 @@ function copyToClipboard() {
         showMessage('⚠️ Vui lòng tạo JSON trước khi copy!', 'warning');
         return;
     }
-    
-    jsonOutput.select();
-    document.execCommand('copy');
-    showMessage('📋 JSON đã được copy vào clipboard!', 'success');
+
+    // Use modern Clipboard API if available, fallback to execCommand
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(jsonOutput.value).then(() => {
+            showMessage('📋 JSON đã được copy vào clipboard!', 'success');
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            fallbackCopyToClipboard(jsonOutput);
+        });
+    } else {
+        fallbackCopyToClipboard(jsonOutput);
+    }
+}
+
+// Fallback copy method for older browsers
+function fallbackCopyToClipboard(textElement) {
+    textElement.select();
+    try {
+        document.execCommand('copy');
+        showMessage('📋 JSON đã được copy vào clipboard!', 'success');
+    } catch (err) {
+        showMessage('❌ Không thể copy. Vui lòng copy thủ công!', 'error');
+    }
 }
 
 // Download JSON as file
@@ -259,28 +373,28 @@ function loadSampleData() {
     }
 
     const sampleData = {
-        // DefaultAdUnitData sample
-        interstitialId: 'ca-app-pub-1234567890123456/1234567890',
-        rewardedVideoId: 'ca-app-pub-1234567890123456/0987654321',
-        bannerId: 'ca-app-pub-1234567890123456/1122334455',
-        aoaId: 'ca-app-pub-1234567890123456/5544332211',
+        // DefaultAdUnitData sample - Valid MAX Ad IDs (16 chars, lowercase + numbers)
+        interstitialId: 'a1b2c3d4e5f6g7h8',
+        rewardedVideoId: 'b2c3d4e5f6g7h8i9',
+        bannerId: 'c3d4e5f6g7h8i9j0',
+        aoaId: 'd4e5f6g7h8i9j0k1',
 
         // BidfloorInterstitial sample
-        interstitialDefaultId: 'bf-interstitial-default-001',
-        interstitialBidfloorIds: ['bf-interstitial-001', 'bf-interstitial-002'],
+        interstitialDefaultId: 'e5f6g7h8i9j0k1l2',
+        interstitialBidfloorIds: ['f6g7h8i9j0k1l2m3', 'g7h8i9j0k1l2m3n4'],
         interstitialLoadCount: '5',
         interstitialAutoRetry: true,
         interstitialAutoReloadInterval: '30000',
 
         // BidfloorRewarded sample
-        rewardedDefaultId: 'bf-rewarded-default-001',
-        rewardedBidfloorIds: ['bf-rewarded-001', 'bf-rewarded-002'],
+        rewardedDefaultId: 'h8i9j0k1l2m3n4o5',
+        rewardedBidfloorIds: ['i9j0k1l2m3n4o5p6', 'j0k1l2m3n4o5p6q7'],
         rewardedLoadCount: '3',
         rewardedAutoRetry: false,
         rewardedAutoReloadInterval: '60000',
 
         // BidfloorBanner sample
-        bidfloorBanner: 'bf-banner-001'
+        bidfloorBanner: 'k1l2m3n4o5p6q7r8'
     };
 
     populateFormWithData(sampleData);
@@ -316,30 +430,111 @@ function collectFormData() {
 }
 
 function populateFormWithData(data) {
+    console.log('populateFormWithData called with:', data);
+
+    // Handle both old and new data structures for backward compatibility
+    let formData = data;
+
+    // If data has the new BidfloorConfig structure, extract it
+    if (data.BidfloorConfig) {
+        console.log('Detected new BidfloorConfig structure');
+        formData = {
+            // DefaultAdUnitData
+            interstitialId: data.DefaultAdUnitData?.interstitialId || '',
+            rewardedVideoId: data.DefaultAdUnitData?.rewardedVideoId || '',
+            bannerId: data.DefaultAdUnitData?.bannerId || '',
+            aoaId: data.DefaultAdUnitData?.aoaId || '',
+
+            // BidfloorConfig.Interstitial
+            interstitialDefaultId: data.BidfloorConfig.Interstitial?.DefaultId || '',
+            interstitialBidfloorIds: data.BidfloorConfig.Interstitial?.BidfloorIds || [],
+            interstitialLoadCount: data.BidfloorConfig.Interstitial?.BidFloorLoadCount || '3',
+            interstitialAutoRetry: data.BidfloorConfig.Interstitial?.BidFloorAutoRetry || false,
+            interstitialAutoReloadInterval: data.BidfloorConfig.Interstitial?.AutoReloadInterval || '99999',
+
+            // BidfloorConfig.Rewarded
+            rewardedDefaultId: data.BidfloorConfig.Rewarded?.DefaultId || '',
+            rewardedBidfloorIds: data.BidfloorConfig.Rewarded?.BidfloorIds || [],
+            rewardedLoadCount: data.BidfloorConfig.Rewarded?.BidFloorLoadCount || '3',
+            rewardedAutoRetry: data.BidfloorConfig.Rewarded?.BidFloorAutoRetry || false,
+            rewardedAutoReloadInterval: data.BidfloorConfig.Rewarded?.AutoReloadInterval || '99999',
+
+            // BidfloorConfig.Banner
+            bidfloorBanner: data.BidfloorConfig.Banner || ''
+        };
+    } else if (data.BidfloorInterstitial || data.BidfloorRewarded) {
+        console.log('Detected old structure with separate Bidfloor objects');
+        formData = {
+            // DefaultAdUnitData
+            interstitialId: data.DefaultAdUnitData?.interstitialId || '',
+            rewardedVideoId: data.DefaultAdUnitData?.rewardedVideoId || '',
+            bannerId: data.DefaultAdUnitData?.bannerId || '',
+            aoaId: data.DefaultAdUnitData?.aoaId || '',
+
+            // BidfloorInterstitial
+            interstitialDefaultId: data.BidfloorInterstitial?.DefaultId || '',
+            interstitialBidfloorIds: data.BidfloorInterstitial?.BidfloorIds || [],
+            interstitialLoadCount: data.BidfloorInterstitial?.BidFloorLoadCount || '3',
+            interstitialAutoRetry: data.BidfloorInterstitial?.BidFloorAutoRetry || false,
+            interstitialAutoReloadInterval: data.BidfloorInterstitial?.AutoReloadInterval || '99999',
+
+            // BidfloorRewarded
+            rewardedDefaultId: data.BidfloorRewarded?.DefaultId || '',
+            rewardedBidfloorIds: data.BidfloorRewarded?.BidfloorIds || [],
+            rewardedLoadCount: data.BidfloorRewarded?.BidFloorLoadCount || '3',
+            rewardedAutoRetry: data.BidfloorRewarded?.BidFloorAutoRetry || false,
+            rewardedAutoReloadInterval: data.BidfloorRewarded?.AutoReloadInterval || '99999',
+
+            // BidfloorBanner
+            bidfloorBanner: data.BidfloorBanner || ''
+        };
+    }
+
+    console.log('Final formData to populate:', formData);
+
     // DefaultAdUnitData
-    document.getElementById('interstitialId').value = data.interstitialId || '';
-    document.getElementById('rewardedVideoId').value = data.rewardedVideoId || '';
-    document.getElementById('bannerId').value = data.bannerId || '';
-    document.getElementById('aoaId').value = data.aoaId || '';
+    const interstitialIdEl = document.getElementById('interstitialId');
+    const rewardedVideoIdEl = document.getElementById('rewardedVideoId');
+    const bannerIdEl = document.getElementById('bannerId');
+    const aoaIdEl = document.getElementById('aoaId');
+
+    if (interstitialIdEl) interstitialIdEl.value = formData.interstitialId || '';
+    if (rewardedVideoIdEl) rewardedVideoIdEl.value = formData.rewardedVideoId || '';
+    if (bannerIdEl) bannerIdEl.value = formData.bannerId || '';
+    if (aoaIdEl) aoaIdEl.value = formData.aoaId || '';
 
     // BidfloorInterstitial
-    document.getElementById('interstitialDefaultId').value = data.interstitialDefaultId || '';
-    document.getElementById('interstitialLoadCount').value = data.interstitialLoadCount || '3';
-    document.getElementById('interstitialAutoRetry').checked = data.interstitialAutoRetry || false;
-    document.getElementById('interstitialAutoReloadInterval').value = data.interstitialAutoReloadInterval || '99999';
+    const interstitialDefaultIdEl = document.getElementById('interstitialDefaultId');
+    const interstitialLoadCountEl = document.getElementById('interstitialLoadCount');
+    const interstitialAutoRetryEl = document.getElementById('interstitialAutoRetry');
+    const interstitialAutoReloadIntervalEl = document.getElementById('interstitialAutoReloadInterval');
+
+    if (interstitialDefaultIdEl) interstitialDefaultIdEl.value = formData.interstitialDefaultId || '';
+    if (interstitialLoadCountEl) interstitialLoadCountEl.value = formData.interstitialLoadCount || '3';
+    if (interstitialAutoRetryEl) interstitialAutoRetryEl.checked = formData.interstitialAutoRetry || false;
+    if (interstitialAutoReloadIntervalEl) interstitialAutoReloadIntervalEl.value = formData.interstitialAutoReloadInterval || '99999';
 
     // BidfloorRewarded
-    document.getElementById('rewardedDefaultId').value = data.rewardedDefaultId || '';
-    document.getElementById('rewardedLoadCount').value = data.rewardedLoadCount || '3';
-    document.getElementById('rewardedAutoRetry').checked = data.rewardedAutoRetry || false;
-    document.getElementById('rewardedAutoReloadInterval').value = data.rewardedAutoReloadInterval || '99999';
+    const rewardedDefaultIdEl = document.getElementById('rewardedDefaultId');
+    const rewardedLoadCountEl = document.getElementById('rewardedLoadCount');
+    const rewardedAutoRetryEl = document.getElementById('rewardedAutoRetry');
+    const rewardedAutoReloadIntervalEl = document.getElementById('rewardedAutoReloadInterval');
+
+    if (rewardedDefaultIdEl) rewardedDefaultIdEl.value = formData.rewardedDefaultId || '';
+    if (rewardedLoadCountEl) rewardedLoadCountEl.value = formData.rewardedLoadCount || '3';
+    if (rewardedAutoRetryEl) rewardedAutoRetryEl.checked = formData.rewardedAutoRetry || false;
+    if (rewardedAutoReloadIntervalEl) rewardedAutoReloadIntervalEl.value = formData.rewardedAutoReloadInterval || '99999';
 
     // BidfloorBanner
-    document.getElementById('bidfloorBanner').value = data.bidfloorBanner || '';
+    const bidfloorBannerEl = document.getElementById('bidfloorBanner');
+    if (bidfloorBannerEl) bidfloorBannerEl.value = formData.bidfloorBanner || '';
 
     // Populate bidfloor IDs
-    populateBidfloorIds('interstitialBidfloorIds', data.interstitialBidfloorIds || [], 'interstitial');
-    populateBidfloorIds('rewardedBidfloorIds', data.rewardedBidfloorIds || [], 'rewarded');
+    console.log('Populating bidfloor IDs...');
+    populateBidfloorIds('interstitialBidfloorIds', formData.interstitialBidfloorIds || [], 'interstitial');
+    populateBidfloorIds('rewardedBidfloorIds', formData.rewardedBidfloorIds || [], 'rewarded');
+
+    console.log('Form population completed');
 }
 
 function populateBidfloorIds(containerId, ids, type) {
@@ -351,7 +546,7 @@ function populateBidfloorIds(containerId, ids, type) {
         const div = document.createElement('div');
         div.className = 'array-input';
         div.innerHTML = `
-            <input type="text" value="${id}" placeholder="Nhập Bidfloor ID" readonly>
+            <input type="text" value="${id}" placeholder="Ví dụ: a1b2c3d4e5f6g7h8" maxlength="16" readonly>
             <button type="button" class="btn btn-remove" onclick="removeBidfloorId(this)">Xóa</button>
         `;
         container.appendChild(div);
@@ -361,7 +556,7 @@ function populateBidfloorIds(containerId, ids, type) {
     const div = document.createElement('div');
     div.className = 'array-input';
     div.innerHTML = `
-        <input type="text" placeholder="Nhập Bidfloor ID">
+        <input type="text" placeholder="Ví dụ: a1b2c3d4e5f6g7h8" maxlength="16" oninput="validateAdId(this)" onblur="validateAdId(this)">
         <button type="button" class="btn btn-add" onclick="addBidfloorId('${type}', this)">Thêm</button>
     `;
     container.appendChild(div);
@@ -477,6 +672,39 @@ function saveCurrentProject(showNotification = true) {
     return success;
 }
 
+function clearCurrentData() {
+    const projectName = document.getElementById('projectName').value.trim();
+    if (!projectName) {
+        showMessage('⚠️ Vui lòng nhập tên project!', 'warning');
+        return;
+    }
+
+    if (confirm(`Bạn có chắc muốn xóa tất cả dữ liệu của project "${projectName}"?\n\nProject sẽ được giữ lại nhưng tất cả dữ liệu sẽ bị xóa sạch.`)) {
+        clearForm();
+        // Save empty data to project
+        const emptyData = {
+            interstitialId: '',
+            rewardedVideoId: '',
+            bannerId: '',
+            aoaId: '',
+            interstitialDefaultId: '',
+            interstitialBidfloorIds: [],
+            interstitialLoadCount: '3',
+            interstitialAutoRetry: false,
+            interstitialAutoReloadInterval: '99999',
+            rewardedDefaultId: '',
+            rewardedBidfloorIds: [],
+            rewardedLoadCount: '3',
+            rewardedAutoRetry: false,
+            rewardedAutoReloadInterval: '99999',
+            bidfloorBanner: ''
+        };
+
+        projectDB.saveProject(projectName, emptyData);
+        showMessage(`🧹 Đã xóa sạch dữ liệu của project "${projectName}"`, 'success');
+    }
+}
+
 function deleteCurrentProject() {
     const projectName = document.getElementById('projectName').value.trim();
     if (!projectName) {
@@ -484,7 +712,7 @@ function deleteCurrentProject() {
         return;
     }
 
-    if (confirm(`Bạn có chắc muốn xóa project "${projectName}"?`)) {
+    if (confirm(`Bạn có chắc muốn xóa hoàn toàn project "${projectName}"?\n\nProject và tất cả dữ liệu sẽ bị xóa vĩnh viễn.`)) {
         projectDB.deleteProject(projectName);
         clearForm();
         document.getElementById('projectName').value = '';
@@ -606,6 +834,243 @@ function processImport() {
 
 function closeModal(modalId) {
     document.getElementById(modalId).style.display = 'none';
+}
+
+// JSON Data Import Functions
+function showImportDataModal() {
+    document.getElementById('importDataModal').style.display = 'block';
+}
+
+function handleDataFileImport(input) {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('importDataText').value = e.target.result;
+        };
+        reader.readAsText(file);
+    }
+}
+
+function clearImportData() {
+    document.getElementById('importDataText').value = '';
+    document.getElementById('importDataFile').value = '';
+}
+
+function loadSampleJsonForImport() {
+    const sampleJson = {
+        "DefaultAdUnitData": {
+            "interstitialId": "a1b2c3d4e5f6g7h8",
+            "rewardedVideoId": "b2c3d4e5f6g7h8i9",
+            "bannerId": "c3d4e5f6g7h8i9j0",
+            "aoaId": "d4e5f6g7h8i9j0k1"
+        },
+        "BidfloorConfig": {
+            "Interstitial": {
+                "DefaultId": "e5f6g7h8i9j0k1l2",
+                "BidfloorIds": [
+                    "f6g7h8i9j0k1l2m3",
+                    "g7h8i9j0k1l2m3n4"
+                ],
+                "BidFloorLoadCount": 5,
+                "BidFloorAutoRetry": true,
+                "AutoReloadInterval": 30000
+            },
+            "Rewarded": {
+                "DefaultId": "h8i9j0k1l2m3n4o5",
+                "BidfloorIds": [
+                    "i9j0k1l2m3n4o5p6",
+                    "j0k1l2m3n4o5p6q7"
+                ],
+                "BidFloorLoadCount": 3,
+                "BidFloorAutoRetry": false,
+                "AutoReloadInterval": 60000
+            },
+            "Banner": "k1l2m3n4o5p6q7r8"
+        }
+    };
+
+    document.getElementById('importDataText').value = JSON.stringify(sampleJson, null, 2);
+    showMessage('📝 Sample JSON đã được tải vào import area!', 'success');
+}
+
+function processDataImport() {
+    const importText = document.getElementById('importDataText').value.trim();
+    if (!importText) {
+        showMessage('⚠️ Vui lòng chọn file hoặc paste JSON data!', 'warning');
+        return;
+    }
+
+    try {
+        const jsonData = JSON.parse(importText);
+        console.log('Parsed JSON data:', jsonData);
+
+        const validateOnImport = document.getElementById('validateOnImport').checked;
+
+        // Convert JSON to form data format
+        const formData = convertJsonToFormData(jsonData);
+        console.log('Converted form data:', formData);
+
+        if (validateOnImport) {
+            // Validate all Ad IDs in the imported data
+            const invalidIds = validateImportedAdIds(formData);
+            if (invalidIds.length > 0) {
+                let errorMessage = '❌ JSON chứa Ad IDs không hợp lệ:\n\n';
+                invalidIds.forEach(invalid => {
+                    errorMessage += `• ${invalid.field}: "${invalid.value}"\n`;
+                });
+                errorMessage += '\nBạn có muốn:\n';
+                errorMessage += '1. Bỏ tick "Validate Ad IDs" và import anyway\n';
+                errorMessage += '2. Sửa JSON và thử lại\n';
+                errorMessage += '3. Hủy import';
+
+                alert(errorMessage);
+                return;
+            }
+        }
+
+        // Populate form with imported data
+        console.log('Populating form with data...');
+        populateFormWithData(formData);
+
+        // Trigger validation for all inputs after population
+        setTimeout(() => {
+            const allInputs = document.querySelectorAll('input[type="text"][maxlength="16"]');
+            allInputs.forEach(input => {
+                if (input.value.trim() !== '') {
+                    validateAdId(input);
+                }
+            });
+        }, 100);
+
+        // Auto-save if project name exists
+        const projectName = document.getElementById('projectName').value.trim();
+        if (projectName) {
+            saveCurrentProject(false); // Save silently
+        }
+
+        closeModal('importDataModal');
+        clearImportData();
+
+        showMessage('📥 Đã import JSON data thành công!', 'success');
+
+    } catch (error) {
+        console.error('Import error:', error);
+        showMessage('❌ Lỗi: JSON không hợp lệ! Vui lòng kiểm tra format.', 'error');
+    }
+}
+
+function convertJsonToFormData(jsonData) {
+    // Handle both old and new JSON structures
+    let formData = {};
+
+    if (jsonData.DefaultAdUnitData && jsonData.BidfloorConfig) {
+        // New structure: {DefaultAdUnitData: {...}, BidfloorConfig: {...}}
+        formData = {
+            // DefaultAdUnitData
+            interstitialId: jsonData.DefaultAdUnitData.interstitialId || '',
+            rewardedVideoId: jsonData.DefaultAdUnitData.rewardedVideoId || '',
+            bannerId: jsonData.DefaultAdUnitData.bannerId || '',
+            aoaId: jsonData.DefaultAdUnitData.aoaId || '',
+
+            // BidfloorConfig.Interstitial
+            interstitialDefaultId: jsonData.BidfloorConfig.Interstitial?.DefaultId || '',
+            interstitialBidfloorIds: jsonData.BidfloorConfig.Interstitial?.BidfloorIds || [],
+            interstitialLoadCount: jsonData.BidfloorConfig.Interstitial?.BidFloorLoadCount || 3,
+            interstitialAutoRetry: jsonData.BidfloorConfig.Interstitial?.BidFloorAutoRetry || false,
+            interstitialAutoReloadInterval: jsonData.BidfloorConfig.Interstitial?.AutoReloadInterval || 99999,
+
+            // BidfloorConfig.Rewarded
+            rewardedDefaultId: jsonData.BidfloorConfig.Rewarded?.DefaultId || '',
+            rewardedBidfloorIds: jsonData.BidfloorConfig.Rewarded?.BidfloorIds || [],
+            rewardedLoadCount: jsonData.BidfloorConfig.Rewarded?.BidFloorLoadCount || 3,
+            rewardedAutoRetry: jsonData.BidfloorConfig.Rewarded?.BidFloorAutoRetry || false,
+            rewardedAutoReloadInterval: jsonData.BidfloorConfig.Rewarded?.AutoReloadInterval || 99999,
+
+            // BidfloorConfig.Banner
+            bidfloorBanner: jsonData.BidfloorConfig.Banner || ''
+        };
+    } else if (jsonData.DefaultAdUnitData && (jsonData.BidfloorInterstitial || jsonData.BidfloorRewarded)) {
+        // Old structure: {DefaultAdUnitData: {...}, BidfloorInterstitial: {...}, BidfloorRewarded: {...}, BidfloorBanner: "..."}
+        formData = {
+            // DefaultAdUnitData
+            interstitialId: jsonData.DefaultAdUnitData.interstitialId || '',
+            rewardedVideoId: jsonData.DefaultAdUnitData.rewardedVideoId || '',
+            bannerId: jsonData.DefaultAdUnitData.bannerId || '',
+            aoaId: jsonData.DefaultAdUnitData.aoaId || '',
+
+            // BidfloorInterstitial
+            interstitialDefaultId: jsonData.BidfloorInterstitial?.DefaultId || '',
+            interstitialBidfloorIds: jsonData.BidfloorInterstitial?.BidfloorIds || [],
+            interstitialLoadCount: jsonData.BidfloorInterstitial?.BidFloorLoadCount || 3,
+            interstitialAutoRetry: jsonData.BidfloorInterstitial?.BidFloorAutoRetry || false,
+            interstitialAutoReloadInterval: jsonData.BidfloorInterstitial?.AutoReloadInterval || 99999,
+
+            // BidfloorRewarded
+            rewardedDefaultId: jsonData.BidfloorRewarded?.DefaultId || '',
+            rewardedBidfloorIds: jsonData.BidfloorRewarded?.BidfloorIds || [],
+            rewardedLoadCount: jsonData.BidfloorRewarded?.BidFloorLoadCount || 3,
+            rewardedAutoRetry: jsonData.BidfloorRewarded?.BidFloorAutoRetry || false,
+            rewardedAutoReloadInterval: jsonData.BidfloorRewarded?.AutoReloadInterval || 99999,
+
+            // BidfloorBanner
+            bidfloorBanner: jsonData.BidfloorBanner || ''
+        };
+    } else {
+        // Direct form data format
+        formData = jsonData;
+    }
+
+    return formData;
+}
+
+function validateImportedAdIds(formData) {
+    const invalidIds = [];
+
+    // Check all Ad ID fields
+    const adIdFields = [
+        { field: 'Interstitial ID', value: formData.interstitialId },
+        { field: 'Rewarded Video ID', value: formData.rewardedVideoId },
+        { field: 'Banner ID', value: formData.bannerId },
+        { field: 'AOA ID', value: formData.aoaId },
+        { field: 'Interstitial Default ID', value: formData.interstitialDefaultId },
+        { field: 'Rewarded Default ID', value: formData.rewardedDefaultId },
+        { field: 'Bidfloor Banner ID', value: formData.bidfloorBanner }
+    ];
+
+    adIdFields.forEach(item => {
+        if (item.value && item.value.trim() !== '' && !isValidAdId(item.value.trim())) {
+            invalidIds.push({
+                field: item.field,
+                value: item.value
+            });
+        }
+    });
+
+    // Check bidfloor IDs arrays
+    if (formData.interstitialBidfloorIds && Array.isArray(formData.interstitialBidfloorIds)) {
+        formData.interstitialBidfloorIds.forEach((id, index) => {
+            if (id && id.trim() !== '' && !isValidAdId(id.trim())) {
+                invalidIds.push({
+                    field: `Interstitial Bidfloor ID #${index + 1}`,
+                    value: id
+                });
+            }
+        });
+    }
+
+    if (formData.rewardedBidfloorIds && Array.isArray(formData.rewardedBidfloorIds)) {
+        formData.rewardedBidfloorIds.forEach((id, index) => {
+            if (id && id.trim() !== '' && !isValidAdId(id.trim())) {
+                invalidIds.push({
+                    field: `Rewarded Bidfloor ID #${index + 1}`,
+                    value: id
+                });
+            }
+        });
+    }
+
+    return invalidIds;
 }
 
 // Initialize the form when page loads

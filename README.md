@@ -10,9 +10,17 @@ Tool web đơn giản để tạo và serialize JSON cho class `AdData` từ Uni
 internal class AdData
 {
     internal AdUnitData DefaultAdUnitData;
-    internal BFSuperAdUnitConfig BidfloorInterstitial;
-    internal BFSuperAdUnitConfig BidfloorRewarded;
-    internal string BidfloorBanner;
+    internal BFSuperConfig BidfloorConfig;
+}
+```
+
+### BFSuperConfig Class
+```csharp
+internal class BFSuperConfig
+{
+    internal BFSuperAdUnitConfig Interstitial;
+    internal BFSuperAdUnitConfig Rewarded;
+    internal string Banner;
 }
 ```
 
@@ -48,7 +56,8 @@ internal class BFSuperAdUnitConfig
    - **Project Name**: Nhập tên project để quản lý dữ liệu riêng biệt
    - **💾 Lưu Project**: Lưu dữ liệu hiện tại vào database
    - **📂 Danh sách Projects**: Xem và quản lý tất cả projects đã lưu
-   - **🗑️ Xóa Project**: Xóa project hiện tại
+   - **🧹 Clear Data**: Xóa sạch dữ liệu nhưng giữ lại project
+   - **🗑️ Xóa Project**: Xóa hoàn toàn project và tất cả dữ liệu
    - **📤 Export Project**: Xuất project ra file JSON
    - **📥 Import Project**: Nhập project từ file JSON
 
@@ -66,7 +75,82 @@ internal class BFSuperAdUnitConfig
    - **🔄 Tạo JSON**: Tạo JSON từ dữ liệu đã nhập
    - **📋 Copy JSON**: Copy JSON vào clipboard
    - **💾 Tải xuống JSON**: Tải file JSON về máy
+   - **📥 Import JSON Data**: Import dữ liệu AdData từ JSON vào form
    - **📝 Dữ liệu mẫu**: Tải dữ liệu mẫu để test
+
+## Phân biệt Clear Data vs Delete Project
+
+### 🧹 **Clear Data**
+- **Mục đích**: Xóa sạch tất cả dữ liệu trong form
+- **Project**: Vẫn được giữ lại trong database
+- **Kết quả**: Form trống, project name vẫn còn
+- **Sử dụng khi**: Muốn bắt đầu lại với project hiện tại
+
+### 🗑️ **Delete Project**
+- **Mục đích**: Xóa hoàn toàn project khỏi database
+- **Project**: Bị xóa vĩnh viễn
+- **Kết quả**: Form trống, project name cũng bị xóa
+- **Sử dụng khi**: Không cần project này nữa
+
+## Import JSON Data
+
+### 📥 **Import AdData từ JSON**
+Tính năng này cho phép import dữ liệu AdData từ JSON (ví dụ từ Unity) vào form để chỉnh sửa.
+
+#### 🔧 **Cách sử dụng:**
+1. **Click "📥 Import JSON Data"**
+2. **Chọn file JSON** hoặc **paste JSON text**
+3. **Chọn validation option:**
+   - ✅ **Validate Ad IDs**: Kiểm tra format trước khi import
+   - ❌ **Skip validation**: Import tất cả kể cả ID không hợp lệ
+4. **Click "📥 Import Data"**
+
+#### 📋 **Supported JSON Formats:**
+
+**Format mới (hiện tại):**
+```json
+{
+  "DefaultAdUnitData": {...},
+  "BidfloorConfig": {
+    "Interstitial": {...},
+    "Rewarded": {...},
+    "Banner": "..."
+  }
+}
+```
+
+**Format cũ (backward compatible):**
+```json
+{
+  "DefaultAdUnitData": {...},
+  "BidfloorInterstitial": {...},
+  "BidfloorRewarded": {...},
+  "BidfloorBanner": "..."
+}
+```
+
+#### ⚡ **Smart Features:**
+- **Auto-detect format**: Tự động nhận diện cấu trúc JSON
+- **Validation option**: Có thể bỏ qua validation nếu cần
+- **Auto-save**: Tự động lưu vào project hiện tại (nếu có)
+- **Error reporting**: Báo lỗi chi tiết nếu có ID không hợp lệ
+
+## Format Ad ID
+
+### 📋 **MAX Ad ID Format**
+- **Độ dài**: Đúng 16 ký tự
+- **Ký tự cho phép**: Chữ thường (a-z) và số (0-9)
+- **Ví dụ hợp lệ**: `a1b2c3d4e5f6g7h8`
+- **Ví dụ không hợp lệ**:
+  - `A1B2C3D4E5F6G7H8` (có chữ hoa)
+  - `a1b2c3d4e5f6g7h` (thiếu 1 ký tự)
+  - `a1b2-c3d4-e5f6-g7h8` (có ký tự đặc biệt)
+
+### 🎯 **Validation Features**
+- **Real-time check**: Kiểm tra ngay khi nhập
+- **Visual feedback**: Màu xanh (hợp lệ) / đỏ (không hợp lệ)
+- **Error messages**: Thông báo lỗi cụ thể
+- **JSON blocking**: Không cho tạo JSON khi có lỗi
 
 ## Tính năng
 
@@ -85,9 +169,13 @@ internal class BFSuperAdUnitConfig
 - ✅ **Organized Layout**: Cấu trúc rõ ràng và logic
 
 ### ⚙️ **Tính năng Chức năng**
-- ✅ **Validation**: Kiểm tra dữ liệu đầu vào
+- ✅ **Ad ID Validation**: Kiểm tra format MAX Ad ID (16 ký tự chữ thường + số)
+- ✅ **Real-time Validation**: Hiển thị lỗi ngay khi nhập
+- ✅ **JSON Generation Block**: Không cho tạo JSON khi có ID không hợp lệ
+- ✅ **Import JSON Data**: Import dữ liệu AdData từ JSON với validation
+- ✅ **Multi-format Support**: Hỗ trợ cả format cũ và mới
 - ✅ **Export JSON**: Copy hoặc tải xuống file JSON
-- ✅ **Sample Data**: Dữ liệu mẫu để test nhanh
+- ✅ **Sample Data**: Dữ liệu mẫu với ID hợp lệ để test
 - ✅ **Real-time Preview**: Xem JSON ngay khi tạo
 
 ## Ví dụ JSON Output
@@ -95,32 +183,34 @@ internal class BFSuperAdUnitConfig
 ```json
 {
   "DefaultAdUnitData": {
-    "interstitialId": "ca-app-pub-1234567890123456/1234567890",
-    "rewardedVideoId": "ca-app-pub-1234567890123456/0987654321",
-    "bannerId": "ca-app-pub-1234567890123456/1122334455",
-    "aoaId": "ca-app-pub-1234567890123456/5544332211"
+    "interstitialId": "a1b2c3d4e5f6g7h8",
+    "rewardedVideoId": "b2c3d4e5f6g7h8i9",
+    "bannerId": "c3d4e5f6g7h8i9j0",
+    "aoaId": "d4e5f6g7h8i9j0k1"
   },
-  "BidfloorInterstitial": {
-    "DefaultId": "bf-interstitial-default-001",
-    "BidfloorIds": [
-      "bf-interstitial-001",
-      "bf-interstitial-002"
-    ],
-    "BidFloorLoadCount": 5,
-    "BidFloorAutoRetry": true,
-    "AutoReloadInterval": 30000
-  },
-  "BidfloorRewarded": {
-    "DefaultId": "bf-rewarded-default-001",
-    "BidfloorIds": [
-      "bf-rewarded-001",
-      "bf-rewarded-002"
-    ],
-    "BidFloorLoadCount": 3,
-    "BidFloorAutoRetry": false,
-    "AutoReloadInterval": 60000
-  },
-  "BidfloorBanner": "bf-banner-001"
+  "BidfloorConfig": {
+    "Interstitial": {
+      "DefaultId": "e5f6g7h8i9j0k1l2",
+      "BidfloorIds": [
+        "f6g7h8i9j0k1l2m3",
+        "g7h8i9j0k1l2m3n4"
+      ],
+      "BidFloorLoadCount": 5,
+      "BidFloorAutoRetry": true,
+      "AutoReloadInterval": 30000
+    },
+    "Rewarded": {
+      "DefaultId": "h8i9j0k1l2m3n4o5",
+      "BidfloorIds": [
+        "i9j0k1l2m3n4o5p6",
+        "j0k1l2m3n4o5p6q7"
+      ],
+      "BidFloorLoadCount": 3,
+      "BidFloorAutoRetry": false,
+      "AutoReloadInterval": 60000
+    },
+    "Banner": "k1l2m3n4o5p6q7r8"
+  }
 }
 ```
 
