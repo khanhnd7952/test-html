@@ -1,216 +1,494 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AdData Tools</title>
+    <title>AdData JSON Serializer Tool</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            max-width: 1200px;
+            margin: 0 auto;
             padding: 20px;
+            background-color: #f5f5f5;
         }
-
+        
         .container {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            padding: 40px;
-            text-align: center;
-            max-width: 600px;
-            width: 100%;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
-        .header {
-            margin-bottom: 40px;
-        }
-
-        .header h1 {
-            font-size: 32px;
+        h1 {
             color: #333;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        .header p {
-            font-size: 16px;
-            color: #666;
-            line-height: 1.5;
-        }
-
-        .tools-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
+            text-align: center;
             margin-bottom: 30px;
         }
 
-        .tool-card {
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
+        .group-container {
+            margin-bottom: 40px;
+            padding: 25px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .group-title {
+            color: #2c3e50;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 0 0 10px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             border-radius: 8px;
-            padding: 30px 20px;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
 
-        .tool-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            border-color: #007bff;
+        .group-description {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            margin-bottom: 25px;
+            font-size: 16px;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
-        .tool-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #007bff, #0056b3);
-            transform: scaleX(0);
-            transition: transform 0.3s ease;
-        }
-
-        .tool-card:hover::before {
-            transform: scaleX(1);
-        }
-
-        .tool-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-            display: block;
-        }
-
-        .tool-title {
-            font-size: 20px;
+        .section h2 {
+            color: #495057;
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 8px;
+            font-size: 18px;
             font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
             color: #333;
+        }
+        
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:read-only {
+            background-color: #f8f9fa;
+            border-color: #6c757d;
+            color: #495057;
+        }
+        
+        input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
             margin-bottom: 10px;
         }
-
-        .tool-description {
+        
+        .array-input {
+            margin-bottom: 10px;
+        }
+        
+        .array-input input {
+            width: calc(100% - 80px);
+            display: inline-block;
+        }
+        
+        .btn {
+            padding: 8px 15px;
+            margin-left: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
             font-size: 14px;
-            color: #666;
-            line-height: 1.4;
         }
-
-        .features {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
+        
+        .btn-add {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-remove {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .btn-primary {
+            background-color: #007acc;
+            color: white;
+            padding: 12px 30px;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        
+        .btn:hover {
+            opacity: 0.8;
+        }
+        
+        .output-section {
             margin-top: 30px;
-            text-align: left;
         }
-
-        .features h3 {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 15px;
+        
+        #jsonOutput {
+            width: 100%;
+            height: 300px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            background-color: #f8f9fa;
+            resize: vertical;
+        }
+        
+        .button-group {
             text-align: center;
+            margin: 20px 0;
         }
 
-        .features ul {
-            list-style: none;
+        .project-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+
+        .project-controls .btn {
+            flex: 1;
+            min-width: 140px;
+            max-width: 180px;
+        }
+
+        small {
+            display: block;
+            margin-top: 5px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .project-controls {
+                flex-direction: column;
+            }
+            .project-controls .btn {
+                max-width: none;
+            }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            border: none;
             padding: 0;
         }
 
-        .features li {
-            padding: 8px 0;
-            color: #555;
-            position: relative;
-            padding-left: 20px;
-        }
-
-        .features li::before {
-            content: '✓';
-            position: absolute;
-            left: 0;
-            color: #28a745;
+        .close {
+            font-size: 28px;
             font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
         }
 
-        .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e9ecef;
-            color: #666;
-            font-size: 14px;
+        .close:hover {
+            opacity: 0.7;
         }
 
-        @media (max-width: 768px) {
-            .container {
-                padding: 30px 20px;
-            }
-            
-            .header h1 {
-                font-size: 28px;
-            }
-            
-            .tools-grid {
-                grid-template-columns: 1fr;
-            }
+        .modal-body {
+            padding: 20px;
+        }
+
+        .project-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+        }
+
+        .project-item:hover {
+            background-color: #e9ecef;
+        }
+
+        .project-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .project-date {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .project-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .project-actions .btn {
+            padding: 5px 10px;
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>AdData Tools</h1>
-            <p>Web-based tools for encrypting and decrypting AdData configurations, compatible with Unity AdDataEncryptionTool</p>
-        </div>
+        <h1>🎯 AdData JSON Serializer Tool</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">
+            Tool để tạo và serialize JSON cho AdData class từ Unity C#<br>
+            <strong>Được tổ chức thành 2 nhóm chính: Default Configuration & Bidfloor Configuration</strong>
+        </p>
 
-        <div class="tools-grid">
-            <a href="addata-encryption-tool.html" class="tool-card">
-                <span class="tool-icon">🔒</span>
-                <div class="tool-title">Encryption Tool</div>
-                <div class="tool-description">
-                    Configure AdData settings and encrypt them using AES-256 encryption. 
-                    Includes validation for MAX ad unit IDs and export functionality.
+        <form id="adDataForm">
+            <!-- PROJECT IDENTIFIER GROUP -->
+            <div class="group-container">
+                <h1 class="group-title">🏷️ PROJECT IDENTIFIER</h1>
+                <div class="group-description">Định danh project và quản lý dữ liệu</div>
+
+                <div class="section">
+                    <h2>📋 Project Information</h2>
+                    <div class="form-group">
+                        <label for="projectName">Project Name:</label>
+                        <input type="text" id="projectName" name="projectName" placeholder="Nhập tên project (VD: MyGame_v1.0)" onchange="loadProjectData()" oninput="handleProjectNameInput()">
+                        <small style="color: #6c757d; font-style: italic;">Dữ liệu sẽ được lưu tự động theo tên project</small>
+                    </div>
+                    <div class="project-controls">
+                        <button type="button" class="btn btn-primary" onclick="saveCurrentProject()">💾 Lưu Project</button>
+                        <button type="button" class="btn btn-primary" onclick="showProjectList()">📂 Danh sách Projects</button>
+                        <button type="button" class="btn btn-primary" onclick="deleteCurrentProject()">🗑️ Xóa Project</button>
+                        <button type="button" class="btn btn-primary" onclick="exportProject()">📤 Export Project</button>
+                        <button type="button" class="btn btn-primary" onclick="importProject()">📥 Import Project</button>
+                    </div>
                 </div>
-            </a>
+            </div>
+            <!-- DEFAULT GROUP -->
+            <div class="group-container">
+                <h1 class="group-title">🎯 DEFAULT CONFIGURATION</h1>
+                <div class="group-description">Cấu hình mặc định cho các loại quảng cáo</div>
 
-            <a href="addata-decryption-tool.html" class="tool-card">
-                <span class="tool-icon">🔓</span>
-                <div class="tool-title">Decryption Tool</div>
-                <div class="tool-description">
-                    Decrypt encrypted AdData files or text. Load from files or paste 
-                    encrypted data directly with automatic JSON validation.
+                <!-- DefaultAdUnitData Section -->
+                <div class="section">
+                    <h2>📱 Default Ad Unit Data</h2>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="interstitialId">Interstitial ID:</label>
+                            <input type="text" id="interstitialId" name="interstitialId" placeholder="Nhập Interstitial Ad Unit ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewardedVideoId">Rewarded Video ID:</label>
+                            <input type="text" id="rewardedVideoId" name="rewardedVideoId" placeholder="Nhập Rewarded Video Ad Unit ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="bannerId">Banner ID:</label>
+                            <input type="text" id="bannerId" name="bannerId" placeholder="Nhập Banner Ad Unit ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="aoaId">AOA ID:</label>
+                            <input type="text" id="aoaId" name="aoaId" placeholder="Nhập AOA Ad Unit ID">
+                        </div>
+                    </div>
                 </div>
-            </a>
+            </div>
+
+            <!-- BIDFLOOR GROUP -->
+            <div class="group-container">
+                <h1 class="group-title">💰 BIDFLOOR CONFIGURATION</h1>
+                <div class="group-description">Cấu hình bidfloor cho các loại quảng cáo</div>
+
+                <!-- BidfloorInterstitial Section -->
+                <div class="section">
+                    <h2>🎬 Bidfloor Interstitial Config</h2>
+                    <div class="form-group">
+                        <label for="interstitialDefaultId">Default ID:</label>
+                        <input type="text" id="interstitialDefaultId" name="interstitialDefaultId" placeholder="Nhập Default Interstitial ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Bidfloor IDs:</label>
+                        <div id="interstitialBidfloorIds">
+                            <div class="array-input">
+                                <input type="text" placeholder="Nhập Bidfloor ID">
+                                <button type="button" class="btn btn-add" onclick="addBidfloorId('interstitial', this)">Thêm</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="interstitialLoadCount">Bid Floor Load Count:</label>
+                            <input type="number" id="interstitialLoadCount" name="interstitialLoadCount" value="3" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="interstitialAutoReloadInterval">Auto Reload Interval:</label>
+                            <input type="number" id="interstitialAutoReloadInterval" name="interstitialAutoReloadInterval" value="99999" min="1">
+                        </div>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="interstitialAutoRetry" name="interstitialAutoRetry">
+                        <label for="interstitialAutoRetry">Bid Floor Auto Retry</label>
+                    </div>
+                </div>
+
+                <!-- BidfloorRewarded Section -->
+                <div class="section">
+                    <h2>🎁 Bidfloor Rewarded Config</h2>
+                    <div class="form-group">
+                        <label for="rewardedDefaultId">Default ID:</label>
+                        <input type="text" id="rewardedDefaultId" name="rewardedDefaultId" placeholder="Nhập Default Rewarded ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Bidfloor IDs:</label>
+                        <div id="rewardedBidfloorIds">
+                            <div class="array-input">
+                                <input type="text" placeholder="Nhập Bidfloor ID">
+                                <button type="button" class="btn btn-add" onclick="addBidfloorId('rewarded', this)">Thêm</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="rewardedLoadCount">Bid Floor Load Count:</label>
+                            <input type="number" id="rewardedLoadCount" name="rewardedLoadCount" value="3" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewardedAutoReloadInterval">Auto Reload Interval:</label>
+                            <input type="number" id="rewardedAutoReloadInterval" name="rewardedAutoReloadInterval" value="99999" min="1">
+                        </div>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="rewardedAutoRetry" name="rewardedAutoRetry">
+                        <label for="rewardedAutoRetry">Bid Floor Auto Retry</label>
+                    </div>
+                </div>
+
+                <!-- BidfloorBanner Section -->
+                <div class="section">
+                    <h2>🏷️ Bidfloor Banner Config</h2>
+                    <div class="form-group">
+                        <label for="bidfloorBanner">Bidfloor Banner ID:</label>
+                        <input type="text" id="bidfloorBanner" name="bidfloorBanner" placeholder="Nhập Bidfloor Banner ID">
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="button-group">
+            <button type="button" class="btn btn-primary" onclick="generateJSON()">🔄 Tạo JSON</button>
+            <button type="button" class="btn btn-primary" onclick="copyToClipboard()">📋 Copy JSON</button>
+            <button type="button" class="btn btn-primary" onclick="downloadJSON()">💾 Tải xuống JSON</button>
+            <button type="button" class="btn btn-primary" onclick="loadSampleData()">📝 Dữ liệu mẫu</button>
         </div>
 
-        <div class="features">
-            <h3>Key Features</h3>
-            <ul>
-                <li>AES-256 encryption with PBKDF2 key derivation (10,000 iterations)</li>
-                <li>Compatible with Unity AdDataEncryptionTool encryption format</li>
-                <li>Real-time validation for MAX ad unit IDs (16 characters, lowercase letters and numbers)</li>
-                <li>Visual separation of ad types: Interstitial, Rewarded, and Banner</li>
-                <li>Dynamic array management for bidfloor configurations</li>
-                <li>Copy to clipboard and file export functionality</li>
-                <li>Fixed-size windows with scrollable content areas</li>
-                <li>Responsive design for desktop and mobile devices</li>
-            </ul>
-        </div>
-
-        <div class="footer">
-            <p>These tools replicate the functionality of the Unity AdDataEncryptionTool and AdDataDecryptionTool.</p>
-            <p>Default password: <strong>ikame2099</strong></p>
+        <div class="output-section">
+            <h2>📄 JSON Output</h2>
+            <textarea id="jsonOutput" readonly placeholder="JSON sẽ được hiển thị ở đây..."></textarea>
         </div>
     </div>
+
+    <!-- Project List Modal -->
+    <div id="projectListModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📂 Danh sách Projects</h2>
+                <span class="close" onclick="closeModal('projectListModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="projectList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Project Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📥 Import Project</h2>
+                <span class="close" onclick="closeModal('importModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="importFile">Chọn file JSON để import:</label>
+                    <input type="file" id="importFile" accept=".json" onchange="handleFileImport(this)">
+                </div>
+                <div class="form-group">
+                    <label for="importText">Hoặc paste JSON data:</label>
+                    <textarea id="importText" placeholder="Paste JSON data vào đây..." rows="10"></textarea>
+                </div>
+                <div class="button-group">
+                    <button type="button" class="btn btn-primary" onclick="processImport()">📥 Import</button>
+                    <button type="button" class="btn btn-primary" onclick="closeModal('importModal')">❌ Hủy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>

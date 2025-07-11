@@ -1,179 +1,146 @@
-﻿# AdData Web Tools
+# AdData JSON Serializer Tool
 
-Web-based tools that replicate the functionality of the Unity AdDataEncryptionTool and AdDataDecryptionTool. These tools provide a browser-based interface for encrypting and decrypting AdData configurations using the same AES-256 encryption format as the Unity tools.
+## Mô tả
+Tool web đơn giản để tạo và serialize JSON cho class `AdData` từ Unity C#. Tool này giúp bạn dễ dàng tạo ra cấu trúc JSON tương ứng với class `AdData` mà không cần phải viết code C#.
 
-## Files
+## Cấu trúc dữ liệu được hỗ trợ
 
-- **`index.html`** - Main landing page with links to both tools
-- **`addata-encryption-tool.html`** - Web-based encryption tool
-- **`addata-decryption-tool.html`** - Web-based decryption tool
-
-## Features
-
-### Encryption Tool
-- **AdData Configuration Form** with sections for:
-  - Default Configuration (Interstitial, Rewarded, Banner IDs)
-  - Bidfloor Configuration (separate sections for each ad type)
-  - Dynamic array management for bidfloor IDs
-  - Settings for load count, auto retry, and retry intervals
-
-- **Real-time Validation**:
-  - MAX ad unit IDs must be exactly 16 characters
-  - Only lowercase letters and numbers allowed
-  - Visual warning indicators and messages
-  - Validation confirmation dialog before encryption
-
-- **Encryption Features**:
-  - AES-256 encryption with PBKDF2 key derivation
-  - 10,000 iterations for key derivation (matching Unity implementation)
-  - Same encryption format as Unity AdEnc utility
-  - JSON serialization with pretty printing
-
-- **Export Options**:
-  - Copy encrypted result to clipboard
-  - Export to .txt file
-  - Fixed-size result display with scrolling
-
-### Decryption Tool
-- **Input Methods**:
-  - Load encrypted data from file
-  - Paste encrypted data directly
-  - Clear buttons for easy data management
-
-- **Decryption Features**:
-  - Compatible with Unity AdEnc encryption format
-  - Automatic JSON validation after decryption
-  - Visual feedback for validation status
-
-- **Export Options**:
-  - Copy decrypted JSON to clipboard
-  - Export to .json file
-
-### Common Features
-- **UI Design**:
-  - Fixed-size windows (400-800px width, 600-1200px height)
-  - Scrollable content areas to prevent UI stretching
-  - Visual separation with emojis (🎯 Interstitial, 🎁 Rewarded, 📱 Banner)
-  - Collapsible sections with smooth animations
-
-- **Responsive Design**:
-  - Works on desktop and mobile devices
-  - Adaptive layout for different screen sizes
-
-## Technical Implementation
-
-### Encryption Algorithm
-The tools use the same encryption parameters as the Unity AdEnc utility:
-- **Algorithm**: AES-256-CBC
-- **Key Derivation**: PBKDF2 with 10,000 iterations
-- **Salt Size**: 16 bytes (128 bits)
-- **IV Size**: 16 bytes (128 bits)
-- **Padding**: PKCS7
-- **Output Format**: Base64 encoded (Salt + IV + Encrypted Data)
-
-### AdData Structure
-The tools work with the same AdData structure as the Unity class:
-
-```javascript
+### AdData Class
+```csharp
+internal class AdData
 {
-    DII: '',        // Default Interstitial ID
-    DRI: '',        // Default Rewarded ID
-    DBI: '',        // Default Banner ID
-    BFID: '',       // Bidfloor Interstitial Default ID
-    BFIBFS: [],     // Bidfloor Interstitial IDs array
-    BFILC: 3,       // Bidfloor Interstitial Load Count
-    BFIAR: false,   // Bidfloor Interstitial Auto Retry
-    BFIARI: 99999,  // Bidfloor Interstitial Auto Retry Interval
-    BFRD: '',       // Bidfloor Rewarded Default ID
-    BFRBFS: [],     // Bidfloor Rewarded IDs array
-    BFRLC: 3,       // Bidfloor Rewarded Load Count
-    BFRAR: false,   // Bidfloor Rewarded Auto Retry
-    BFRARI: 99999,  // Bidfloor Rewarded Auto Retry Interval
-    BFB: ''         // Bidfloor Banner ID
+    internal AdUnitData DefaultAdUnitData;
+    internal BFSuperAdUnitConfig BidfloorInterstitial;
+    internal BFSuperAdUnitConfig BidfloorRewarded;
+    internal string BidfloorBanner;
 }
 ```
 
-### Dependencies
-- **CryptoJS 4.1.1** - For AES encryption/decryption functionality
-- Loaded from CDN: `https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js`
+### AdUnitData Class
+```csharp
+class AdUnitData
+{
+    internal string interstitialId;
+    internal string rewardedVideoId;
+    internal string bannerId;
+    internal string aoaId;
+}
+```
 
-## Usage
+### BFSuperAdUnitConfig Class
+```csharp
+internal class BFSuperAdUnitConfig
+{
+    internal string DefaultId;
+    internal string[] BidfloorIds;
+    internal int BidFloorLoadCount = 3;
+    internal bool BidFloorAutoRetry = false;
+    internal int AutoReloadInterval = 99999;
+}
+```
 
-1. **Open the tools**:
-   - Open `index.html` in a web browser
-   - Click on either "Encryption Tool" or "Decryption Tool"
+## Cách sử dụng
 
-2. **Encryption**:
-   - Enter the encryption password (default: `ikame2099`)
-   - Fill in the AdData configuration fields
-   - Add bidfloor IDs using the + and - buttons
-   - Click "Encrypt" to generate encrypted data
-   - Copy to clipboard or export to file
+1. **Mở file `index.html`** trong trình duyệt web
+2. **Quản lý Project** (Tính năng mới!):
 
-3. **Decryption**:
-   - Enter the decryption password
-   - Load encrypted data from file or paste directly
-   - Click "Decrypt" to decrypt the data
-   - View validation status and export results
+### 🏷️ **PROJECT IDENTIFIER**
+   - **Project Name**: Nhập tên project để quản lý dữ liệu riêng biệt
+   - **💾 Lưu Project**: Lưu dữ liệu hiện tại vào database
+   - **📂 Danh sách Projects**: Xem và quản lý tất cả projects đã lưu
+   - **🗑️ Xóa Project**: Xóa project hiện tại
+   - **📤 Export Project**: Xuất project ra file JSON
+   - **📥 Import Project**: Nhập project từ file JSON
 
-## Validation Rules
+3. **Điền thông tin** vào 2 nhóm chính:
 
-### MAX Ad Unit ID Validation
-- Must be exactly 16 characters long
-- Can only contain lowercase letters (a-z) and numbers (0-9)
-- Pattern: `/^[a-z0-9]{16}$/`
+### 🎯 **DEFAULT CONFIGURATION**
+   - **Default Ad Unit Data**: Các ID mặc định cho interstitial, rewarded video, banner và AOA
 
-### Examples of Valid IDs
-- `abc123def456789a`
-- `1234567890abcdef`
-- `test1234test5678`
+### 💰 **BIDFLOOR CONFIGURATION**
+   - **Bidfloor Interstitial Config**: Cấu hình cho interstitial ads với bidfloor
+   - **Bidfloor Rewarded Config**: Cấu hình cho rewarded ads với bidfloor
+   - **Bidfloor Banner Config**: ID cho banner với bidfloor
 
-### Examples of Invalid IDs
-- `ABC123def456789a` (contains uppercase)
-- `abc123def456789` (only 15 characters)
-- `abc123def456789ab` (17 characters)
-- `abc123def456789!` (contains special character)
+4. **Sử dụng các nút chức năng**:
+   - **🔄 Tạo JSON**: Tạo JSON từ dữ liệu đã nhập
+   - **📋 Copy JSON**: Copy JSON vào clipboard
+   - **💾 Tải xuống JSON**: Tải file JSON về máy
+   - **📝 Dữ liệu mẫu**: Tải dữ liệu mẫu để test
 
-## Browser Compatibility
+## Tính năng
 
-The tools work in all modern browsers that support:
-- ES6 JavaScript features
-- CSS Grid and Flexbox
-- File API for file loading
-- Clipboard API for copy functionality
+### 🆕 **Tính năng Database & Project Management**
+- ✅ **Project Database**: Lưu trữ dữ liệu trong localStorage của trình duyệt
+- ✅ **Auto-save**: Tự động lưu khi thay đổi project name
+- ✅ **Project Switching**: Chuyển đổi giữa các projects dễ dàng
+- ✅ **Export/Import**: Xuất/nhập projects dưới dạng JSON
+- ✅ **Project List**: Quản lý danh sách projects với thông tin chi tiết
 
-Tested browsers:
-- Chrome 80+
-- Firefox 75+
-- Safari 13+
-- Edge 80+
+### 🎨 **Tính năng Giao diện**
+- ✅ **Giao diện được nhóm**: Chia thành 3 nhóm chính Project, Default và Bidfloor
+- ✅ **Thiết kế thân thiện**: Dễ sử dụng với thiết kế responsive và gradient đẹp mắt
+- ✅ **Modal Windows**: Popup cho quản lý projects và import
+- ✅ **Dynamic Arrays**: Thêm/xóa Bidfloor IDs động
+- ✅ **Organized Layout**: Cấu trúc rõ ràng và logic
 
-## Security Notes
+### ⚙️ **Tính năng Chức năng**
+- ✅ **Validation**: Kiểm tra dữ liệu đầu vào
+- ✅ **Export JSON**: Copy hoặc tải xuống file JSON
+- ✅ **Sample Data**: Dữ liệu mẫu để test nhanh
+- ✅ **Real-time Preview**: Xem JSON ngay khi tạo
 
-- Encryption is performed client-side in the browser
-- No data is sent to external servers
-- The default password (`ikame2099`) matches the Unity tool
-- Use strong passwords for production encryption
+## Ví dụ JSON Output
 
-## Differences from Unity Tool
+```json
+{
+  "DefaultAdUnitData": {
+    "interstitialId": "ca-app-pub-1234567890123456/1234567890",
+    "rewardedVideoId": "ca-app-pub-1234567890123456/0987654321",
+    "bannerId": "ca-app-pub-1234567890123456/1122334455",
+    "aoaId": "ca-app-pub-1234567890123456/5544332211"
+  },
+  "BidfloorInterstitial": {
+    "DefaultId": "bf-interstitial-default-001",
+    "BidfloorIds": [
+      "bf-interstitial-001",
+      "bf-interstitial-002"
+    ],
+    "BidFloorLoadCount": 5,
+    "BidFloorAutoRetry": true,
+    "AutoReloadInterval": 30000
+  },
+  "BidfloorRewarded": {
+    "DefaultId": "bf-rewarded-default-001",
+    "BidfloorIds": [
+      "bf-rewarded-001",
+      "bf-rewarded-002"
+    ],
+    "BidFloorLoadCount": 3,
+    "BidFloorAutoRetry": false,
+    "AutoReloadInterval": 60000
+  },
+  "BidfloorBanner": "bf-banner-001"
+}
+```
 
-### Advantages of Web Version
-- Cross-platform compatibility (works on any OS with a browser)
-- No Unity installation required
-- Responsive design for mobile devices
-- Instant access without compilation
+## Files
 
-### Limitations
-- Requires internet connection for CryptoJS library (or can be made offline)
-- No integration with Unity Editor workflows
-- Limited to browser file system access
+- `index.html`: Giao diện chính của tool
+- `script.js`: Logic JavaScript xử lý tạo JSON
+- `README.md`: Hướng dẫn sử dụng
 
-## Future Enhancements
+## Yêu cầu hệ thống
 
-Potential improvements that could be added:
-- Offline mode with bundled CryptoJS
-- Drag-and-drop file support
-- Batch processing of multiple files
-- Configuration templates/presets
-- Dark mode theme
-- Additional export formats
+- Trình duyệt web hiện đại (Chrome, Firefox, Safari, Edge)
+- Không cần cài đặt thêm gì khác
+
+## Lưu ý
+
+- Tool này chỉ tạo JSON structure, không kết nối trực tiếp với Unity
+- JSON được tạo ra tương thích với cấu trúc class C# gốc
+- Có thể sử dụng JSON này để import vào Unity hoặc các ứng dụng khác
+
+## Hỗ trợ
+
+Nếu có vấn đề hoặc cần thêm tính năng, vui lòng liên hệ hoặc tạo issue.
