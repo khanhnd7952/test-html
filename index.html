@@ -369,7 +369,7 @@
                         <button type="button" class="btn btn-warning" onclick="clearCurrentData()" title="Xóa sạch dữ liệu nhưng giữ lại project">🧹 Clear Data</button>
                         <button type="button" class="btn btn-primary" onclick="deleteCurrentProject()" title="Xóa hoàn toàn project và tất cả dữ liệu">🗑️ Xóa Project</button>
                         <button type="button" class="btn btn-primary" onclick="exportProject()">📤 Export Project</button>
-                        <button type="button" class="btn btn-primary" onclick="importProject()">📥 Import Project</button>
+                        <button type="button" class="btn btn-primary" onclick="importProject()" id="importProjectBtn">📥 Import Project</button>
                     </div>
                 </div>
             </div>
@@ -495,6 +495,9 @@
             <button type="button" class="btn btn-primary" onclick="downloadJSON()">💾 Tải xuống JSON</button>
             <button type="button" class="btn btn-primary" onclick="showImportDataModal()" id="importDataBtn">📥 Import JSON Data</button>
             <button type="button" class="btn btn-primary" onclick="debugImport()">🔧 Debug Import</button>
+            <button type="button" class="btn btn-warning" onclick="document.getElementById('importDataModal').style.display='block'">⚡ Force Modal</button>
+            <button type="button" class="btn btn-warning" onclick="document.getElementById('testModal').style.display='block'">🧪 Test Modal</button>
+            <button type="button" class="btn btn-warning" onclick="debugImportProject()">🔧 Debug Import Project</button>
             <button type="button" class="btn btn-primary" onclick="loadSampleData()">📝 Dữ liệu mẫu</button>
         </div>
 
@@ -579,6 +582,15 @@
         </div>
     </div>
 
+    <!-- Test Modal for debugging -->
+    <div id="testModal" style="display: none; position: fixed; z-index: 99999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(255,0,0,0.8);">
+        <div style="background: white; margin: 15% auto; padding: 20px; border-radius: 10px; width: 300px; text-align: center;">
+            <h2>🧪 Test Modal</h2>
+            <p>If you can see this, modal system works!</p>
+            <button onclick="document.getElementById('testModal').style.display='none'" style="padding: 10px 20px; background: #007acc; color: white; border: none; border-radius: 5px;">Close</button>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 
     <!-- Debug and Fallback Script -->
@@ -587,6 +599,33 @@
         function debugImport() {
             console.log('Debug Import called');
             console.log('showImportDataModal function exists:', typeof showImportDataModal !== 'undefined');
+
+            // Check if modal element exists
+            const modal = document.getElementById('importDataModal');
+            console.log('Modal element exists:', modal !== null);
+            console.log('Modal element:', modal);
+
+            if (modal) {
+                console.log('Modal current display:', window.getComputedStyle(modal).display);
+                console.log('Modal current visibility:', window.getComputedStyle(modal).visibility);
+                console.log('Modal current z-index:', window.getComputedStyle(modal).zIndex);
+
+                // Force show modal with direct style
+                modal.style.display = 'block';
+                modal.style.visibility = 'visible';
+                modal.style.zIndex = '99999';
+                modal.style.position = 'fixed';
+                modal.style.top = '0';
+                modal.style.left = '0';
+                modal.style.width = '100%';
+                modal.style.height = '100%';
+                modal.style.backgroundColor = 'rgba(0,0,0,0.8)';
+
+                console.log('Modal forced to show');
+                alert('✅ Modal should be visible now! Check if you can see it.');
+            } else {
+                alert('❌ Modal element not found! HTML may not be loaded properly.');
+            }
 
             if (typeof showImportDataModal === 'undefined') {
                 alert('❌ Function showImportDataModal not found! Script may not be loaded properly.');
@@ -598,6 +637,50 @@
             } catch (error) {
                 console.error('Error calling showImportDataModal:', error);
                 alert('❌ Error: ' + error.message);
+            }
+        }
+
+        // Debug function for Import Project
+        function debugImportProject() {
+            console.log('Debug Import Project called');
+            console.log('importProject function exists:', typeof importProject !== 'undefined');
+
+            // Check if modal element exists
+            const modal = document.getElementById('importModal');
+            console.log('Import Project modal element exists:', modal !== null);
+            console.log('Import Project modal element:', modal);
+
+            if (modal) {
+                console.log('Modal current display:', window.getComputedStyle(modal).display);
+                console.log('Modal current visibility:', window.getComputedStyle(modal).visibility);
+                console.log('Modal current z-index:', window.getComputedStyle(modal).zIndex);
+
+                // Force show modal with direct style
+                modal.style.display = 'block';
+                modal.style.visibility = 'visible';
+                modal.style.zIndex = '99999';
+                modal.style.position = 'fixed';
+                modal.style.top = '0';
+                modal.style.left = '0';
+                modal.style.width = '100%';
+                modal.style.height = '100%';
+                modal.style.backgroundColor = 'rgba(0,0,0,0.8)';
+
+                console.log('Import Project modal forced to show');
+                alert('✅ Import Project modal should be visible now! Check if you can see it.');
+            } else {
+                alert('❌ Import Project modal element not found!');
+            }
+
+            if (typeof importProject !== 'undefined') {
+                try {
+                    importProject();
+                } catch (error) {
+                    console.error('Error calling importProject:', error);
+                    alert('❌ Error: ' + error.message);
+                }
+            } else {
+                alert('❌ Function importProject not found!');
             }
         }
 

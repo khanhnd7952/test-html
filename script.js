@@ -741,7 +741,15 @@ function showProjectList() {
         `).join('');
     }
 
-    document.getElementById('projectListModal').style.display = 'block';
+    const modal = document.getElementById('projectListModal');
+    if (modal) {
+        modal.style.display = 'block';
+        modal.classList.add('show');
+        console.log('Project List modal should be visible now');
+    } else {
+        console.error('projectListModal element not found!');
+        alert('❌ Project List modal not found!');
+    }
 }
 
 function loadProjectFromList(projectName) {
@@ -787,7 +795,16 @@ function exportProject() {
 }
 
 function importProject() {
-    document.getElementById('importModal').style.display = 'block';
+    console.log('importProject called');
+    const modal = document.getElementById('importModal');
+    if (modal) {
+        modal.style.display = 'block';
+        modal.classList.add('show');
+        console.log('Import Project modal should be visible now');
+    } else {
+        console.error('importModal element not found!');
+        alert('❌ Import Project modal not found! Please check if the page loaded correctly.');
+    }
 }
 
 function handleFileImport(input) {
