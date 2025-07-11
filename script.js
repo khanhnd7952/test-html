@@ -833,12 +833,29 @@ function processImport() {
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    console.log('closeModal called for:', modalId);
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('show');
+        console.log('Modal closed:', modalId);
+    } else {
+        console.error('Modal not found:', modalId);
+    }
 }
 
 // JSON Data Import Functions
 function showImportDataModal() {
-    document.getElementById('importDataModal').style.display = 'block';
+    console.log('showImportDataModal called');
+    const modal = document.getElementById('importDataModal');
+    if (modal) {
+        modal.style.display = 'block';
+        modal.classList.add('show');
+        console.log('Modal should be visible now');
+    } else {
+        console.error('importDataModal element not found!');
+        alert('❌ Modal element not found! Please check if the page loaded correctly.');
+    }
 }
 
 function handleDataFileImport(input) {
