@@ -1,0 +1,209 @@
+<!-- Create New Project Modal -->
+<div id="createProjectModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>➕ Tạo Project Mới</h2>
+            <span class="close" onclick="closeModal('createProjectModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="newProjectName">Tên Project:</label>
+                <input type="text" id="newProjectName" placeholder="Nhập tên project mới..." maxlength="100" required>
+                <small style="color: #6c757d;">Tên project phải duy nhất</small>
+            </div>
+            <div class="form-group">
+                <label for="newProjectScriptId">Script ID:</label>
+                <input type="text" id="newProjectScriptId" placeholder="Nhập Script ID (tùy chọn)..." maxlength="50">
+                <small style="color: #6c757d;">Định danh script cho project</small>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="clearFormData" checked>
+                    Xóa dữ liệu form hiện tại
+                </label>
+                <small style="display: block; color: #6c757d; margin-top: 5px;">
+                    Nếu bỏ tick, sẽ giữ lại dữ liệu AdData hiện tại cho project mới
+                </small>
+            </div>
+            <div class="button-group">
+                <button type="button" class="btn btn-success" onclick="processCreateProject()">➕ Tạo Project</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('createProjectModal')">❌ Hủy</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Project List Modal -->
+<div id="projectListModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>📂 Load Project</h2>
+            <span class="close" onclick="closeModal('projectListModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="projectList" class="project-list">
+                <div class="loading-projects">Đang tải danh sách projects...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Project Modal -->
+<div id="importModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>📥 Import Project</h2>
+            <span class="close" onclick="closeModal('importModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="importFile">Chọn file JSON để import:</label>
+                <input type="file" id="importFile" accept=".json" onchange="handleFileImport(this)">
+            </div>
+            <div class="form-group">
+                <label for="importText">Hoặc paste JSON data:</label>
+                <textarea id="importText" placeholder="Paste JSON data vào đây..." rows="10"></textarea>
+            </div>
+            <div class="button-group">
+                <button type="button" class="btn btn-primary" onclick="processImport()">📥 Import</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('importModal')">❌ Hủy</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import JSON Data Modal -->
+<div id="importDataModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>📥 Import JSON Data</h2>
+            <span class="close" onclick="closeModal('importDataModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p style="color: #6c757d; margin-bottom: 20px;">
+                Import dữ liệu AdData từ JSON (từ Unity hoặc nguồn khác) vào form hiện tại.
+            </p>
+            <div class="form-group">
+                <label for="importDataFile">Chọn file JSON:</label>
+                <input type="file" id="importDataFile" accept=".json" onchange="handleDataFileImport(this)">
+            </div>
+            <div class="form-group">
+                <label for="importDataText">Hoặc paste JSON AdData:</label>
+                <textarea id="importDataText" placeholder="Paste JSON AdData vào đây..." rows="15" style="font-family: 'Courier New', monospace; font-size: 12px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="validateOnImport" checked>
+                    Validate Ad IDs khi import
+                </label>
+                <small style="display: block; color: #6c757d; margin-top: 5px;">
+                    Nếu bỏ tick, sẽ import tất cả dữ liệu kể cả ID không hợp lệ
+                </small>
+            </div>
+            <div class="button-group">
+                <button type="button" class="btn btn-primary" onclick="processDataImport()">📥 Import Data</button>
+                <button type="button" class="btn btn-secondary" onclick="clearImportData()">🧹 Clear</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('importDataModal')">❌ Hủy</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Notification Toast -->
+<div id="notificationToast" class="notification-toast" style="display: none;">
+    <div class="toast-content">
+        <span class="toast-icon"></span>
+        <span class="toast-message"></span>
+        <button class="toast-close" onclick="hideNotification()">&times;</button>
+    </div>
+</div>
+
+<!-- Add Script Modal -->
+<div id="addScriptModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>➕ Thêm Script Mới</h2>
+            <span class="close" onclick="closeModal('addScriptModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="addScriptForm">
+                <div class="form-group">
+                    <label for="newScriptId">Script ID:</label>
+                    <input type="text" id="newScriptId" name="scriptId" placeholder="VD: GAME_001" maxlength="50" required list="scriptIdDatalist">
+                    <datalist id="scriptIdDatalist">
+                        <!-- Script IDs will be loaded here -->
+                    </datalist>
+                    <small>Định danh duy nhất cho script</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="newScriptName">Tên Script:</label>
+                    <input type="text" id="newScriptName" name="name" placeholder="VD: Game Script 1" maxlength="100" required>
+                    <small>Tên hiển thị cho script</small>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="copyCurrentData" checked>
+                        Sao chép dữ liệu từ script hiện tại
+                    </label>
+                    <small>Nếu bỏ chọn, script mới sẽ có dữ liệu trống</small>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">➕ Thêm Script</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addScriptModal')">❌ Hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Script Modal -->
+<div id="editScriptModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>✏️ Sửa Script</h2>
+            <span class="close" onclick="closeModal('editScriptModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="editScriptForm">
+                <div class="form-group">
+                    <label for="editScriptId">Script ID:</label>
+                    <input type="text" id="editScriptId" name="scriptId" maxlength="50" required readonly>
+                    <small>Script ID không thể thay đổi</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="editScriptName">Tên Script:</label>
+                    <input type="text" id="editScriptName" name="name" maxlength="100" required>
+                    <small>Tên hiển thị cho script</small>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">💾 Lưu Thay Đổi</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editScriptModal')">❌ Hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="modal">
+    <div class="modal-content modal-small">
+        <div class="modal-header">
+            <h2 id="confirmTitle">Xác nhận</h2>
+            <span class="close" onclick="closeModal('confirmModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p id="confirmMessage">Bạn có chắc chắn muốn thực hiện hành động này?</p>
+            <div class="button-group">
+                <button type="button" class="btn btn-danger" id="confirmYes">Có</button>
+                <button type="button" class="btn btn-secondary" id="confirmNo" onclick="closeModal('confirmModal')">Không</button>
+            </div>
+        </div>
+    </div>
+</div>

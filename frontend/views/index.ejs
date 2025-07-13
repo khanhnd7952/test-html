@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Tool web để tạo và serialize JSON cho Unity AdData với bidfloor configuration">
+    <meta name="keywords" content="Unity, AdData, JSON, Serializer, MAX, Bidfloor">
+    <meta name="author" content="AdData Tool">
+    <title><%= title %></title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/dynamic.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 AdData JSON Serializer Tool</h1>
+            <p style="text-align: center; color: #666; margin-bottom: 30px;">
+                Tool để tạo và serialize JSON cho AdData class từ Unity C#<br>
+                <strong>Cấu trúc mới: DefaultAdUnitData + BidfloorConfig (Interstitial, Rewarded, Banner)</strong><br>
+                <span class="version-badge">Version <%= version %></span>
+            </p>
+        </header>
+
+        <main>
+            <form id="adDataForm" role="form" aria-label="AdData Configuration Form">
+            <!-- PROJECT IDENTIFIER GROUP -->
+            <section class="group-container" aria-labelledby="project-title">
+                <h2 id="project-title" class="group-title">🏷️ PROJECT IDENTIFIER</h2>
+                <div class="group-description">Định danh project và quản lý dữ liệu</div>
+
+                <div class="section">
+                    <h3>📋 Project Information</h3>
+                    <div class="form-group">
+                        <label for="projectName">Project Name:</label>
+                        <input type="text"
+                               id="projectName"
+                               name="projectName"
+                               placeholder="Nhập tên project (VD: MyGame_v1.0)"
+                               onchange="loadProjectData()"
+                               oninput="handleProjectNameInput()"
+                               aria-describedby="project-help">
+                        <small id="project-help" style="color: #6c757d; font-style: italic;">Dữ liệu sẽ được lưu tự động theo tên project</small>
+                    </div>
+                    
+                    <!-- Script Management Section -->
+                    <div class="script-management-section">
+                        <div class="script-header">
+                            <h3>📜 Scripts Management</h3>
+                            <div class="script-controls">
+                                <select id="currentScriptSelector" onchange="switchScript()">
+                                    <option value="">Chọn script...</option>
+                                </select>
+                                <button type="button" class="btn btn-success btn-sm" onclick="showAddScriptModal()">➕ Thêm Script</button>
+                                <button type="button" class="btn btn-warning btn-sm" onclick="showEditScriptModal()" id="editScriptBtn" disabled>✏️ Sửa Script</button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteCurrentScript()" id="deleteScriptBtn" disabled>🗑️ Xóa Script</button>
+                            </div>
+                        </div>
+
+                        <div class="current-script-info" id="currentScriptInfo" style="display: none;">
+                            <div class="script-info-card">
+                                <h4 id="currentScriptName">Script Name</h4>
+                                <p><strong>Script ID:</strong> <span id="currentScriptId">-</span></p>
+                                <p><strong>Trạng thái:</strong> <span id="currentScriptStatus">Chưa có dữ liệu</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="project-controls" role="group" aria-label="Project Management Controls">
+                        <button type="button" class="btn btn-success" onclick="createNewProject()" aria-label="Tạo project mới">➕ Tạo Project Mới</button>
+                        <button type="button" class="btn btn-primary" onclick="saveCurrentProject()" aria-label="Lưu project hiện tại">💾 Lưu Project</button>
+                        <button type="button" class="btn btn-primary" onclick="showProjectList()" aria-label="Xem danh sách projects">📂 Load Project</button>
+                        <button type="button" class="btn btn-danger" onclick="deleteCurrentProject()" id="deleteProjectBtn" aria-label="Xóa project hiện tại" style="display: none;">🗑️ Xóa Project</button>
+                        <button type="button" class="btn btn-primary" onclick="exportProject()" aria-label="Xuất project ra file">📤 Export Project</button>
+                        <button type="button" class="btn btn-primary" onclick="importProject()" id="importProjectBtn" aria-label="Nhập project từ file">📥 Import Project</button>
+                    </div>
+                    
+                    <!-- Project Status -->
+                    <div id="projectStatus" class="project-status" style="display: none;">
+                        <div class="status-info">
+                            <span id="projectId" class="project-id"></span>
+                            <span id="lastSaved" class="last-saved"></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- DEFAULT GROUP -->
+            <div class="group-container">
+                <h1 class="group-title">🎯 DEFAULT CONFIGURATION</h1>
+                <div class="group-description">Cấu hình mặc định cho các loại quảng cáo</div>
+
+                <!-- DefaultAdUnitData Section -->
+                <div class="section">
+                    <h2>📱 Default Ad Unit Data</h2>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="interstitialId">Interstitial ID:</label>
+                            <input type="text" id="interstitialId" name="interstitialId" placeholder="Ví dụ: a1b2c3d4e5f6g7h8" maxlength="16" oninput="validateAdId(this)" onblur="validateAdId(this)">
+                            <small class="validation-message validation-info">Format: 16 ký tự (chữ thường a-z và số 0-9)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="rewardedVideoId">Rewarded Video ID:</label>
+                            <input type="text" id="rewardedVideoId" name="rewardedVideoId" placeholder="Ví dụ: a1b2c3d4e5f6g7h8" maxlength="16" oninput="validateAdId(this)" onblur="validateAdId(this)">
+                            <small class="validation-message validation-info">Format: 16 ký tự (chữ thường a-z và số 0-9)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="bannerId">Banner ID:</label>
+                            <input type="text" id="bannerId" name="bannerId" placeholder="Ví dụ: a1b2c3d4e5f6g7h8" maxlength="16" oninput="validateAdId(this)" onblur="validateAdId(this)">
+                            <small class="validation-message validation-info">Format: 16 ký tự (chữ thường a-z và số 0-9)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="aoaId">AOA ID:</label>
+                            <input type="text" id="aoaId" name="aoaId" placeholder="Ví dụ: a1b2c3d4e5f6g7h8" maxlength="16" oninput="validateAdId(this)" onblur="validateAdId(this)">
+                            <small class="validation-message validation-info">Format: 16 ký tự (chữ thường a-z và số 0-9)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BIDFLOOR GROUP -->
+            <div class="group-container">
+                <h1 class="group-title">💰 BIDFLOOR CONFIGURATION</h1>
+                <div class="group-description">Cấu hình bidfloor cho các loại quảng cáo</div>
+
+                <!-- BidfloorInterstitial Section -->
+                <div class="section">
+                    <h2>🎬 Bidfloor Interstitial Config</h2>
+                    <div class="form-group">
+                        <label for="interstitialDefaultId">Default ID:</label>
+                        <input type="text" id="interstitialDefaultId" name="interstitialDefaultId" placeholder="Ví dụ: a1b2c3d4e5f6g7h8" maxlength="16" oninput="validateAdId(this)" onblur="validateAdId(this)">
+                        <small class="validation-message validation-info">Format: 16 ký tự (chữ thường a-z và số 0-9)</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Bidfloor IDs:</label>
+                        <div id="interstitialBidfloorIds">
+                            <div class="array-input">
+                                <div class="array-input-row">
+                                    <div class="array-input-field">
+                                        <input type="text" placeholder="Ví dụ: a1b2c3d4e5f6g7h8" maxlength="16" oninput="validateAdId(this)" onblur="validateAdId(this)">
+                                        <small class="validation-message validation-info">Format: 16 ký tự (chữ thường a-z và số 0-9)</small>
+                                    </div>
+                                    <button type="button" class="btn btn-add" onclick="addBidfloorId('interstitial', this)">Thêm</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="interstitialLoadCount">Bid Floor Load Count:</label>
+                            <input type="number" id="interstitialLoadCount" name="interstitialLoadCount" value="3" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="interstitialAutoReloadInterval">Auto Reload Interval:</label>
+                            <input type="number" id="interstitialAutoReloadInterval" name="interstitialAutoReloadInterval" value="99999" min="1">
+                        </div>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="interstitialAutoRetry" name="interstitialAutoRetry">
+                        <label for="interstitialAutoRetry">Bid Floor Auto Retry</label>
+                    </div>
+                </div>
+
+                <!-- BidfloorRewarded Section -->
+                <div class="section">
+                    <h2>🎁 Bidfloor Rewarded Config</h2>
+                    <div class="form-group">
+                        <label for="rewardedDefaultId">Default ID:</label>
+                        <input type="text" id="rewardedDefaultId" name="rewardedDefaultId" placeholder="Ví dụ: a1b2c3d4e5f6g7h8" maxlength="16" oninput="validateAdId(this)" onblur="validateAdId(this)">
+                        <small class="validation-message validation-info">Format: 16 ký tự (chữ thường a-z và số 0-9)</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Bidfloor IDs:</label>
+                        <div id="rewardedBidfloorIds">
+                            <div class="array-input">
+                                <div class="array-input-row">
+                                    <div class="array-input-field">
+                                        <input type="text" placeholder="Ví dụ: a1b2c3d4e5f6g7h8" maxlength="16" oninput="validateAdId(this)" onblur="validateAdId(this)">
+                                        <small class="validation-message validation-info">Format: 16 ký tự (chữ thường a-z và số 0-9)</small>
+                                    </div>
+                                    <button type="button" class="btn btn-add" onclick="addBidfloorId('rewarded', this)">Thêm</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label for="rewardedLoadCount">Bid Floor Load Count:</label>
+                            <input type="number" id="rewardedLoadCount" name="rewardedLoadCount" value="3" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewardedAutoReloadInterval">Auto Reload Interval:</label>
+                            <input type="number" id="rewardedAutoReloadInterval" name="rewardedAutoReloadInterval" value="99999" min="1">
+                        </div>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="rewardedAutoRetry" name="rewardedAutoRetry">
+                        <label for="rewardedAutoRetry">Bid Floor Auto Retry</label>
+                    </div>
+                </div>
+
+                <!-- BidfloorBanner Section -->
+                <div class="section">
+                    <h2>🏷️ Bidfloor Banner Config</h2>
+                    <div class="form-group">
+                        <label for="bidfloorBanner">Bidfloor Banner ID:</label>
+                        <input type="text" id="bidfloorBanner" name="bidfloorBanner" placeholder="Ví dụ: a1b2c3d4e5f6g7h8" maxlength="16" oninput="validateAdId(this)" onblur="validateAdId(this)">
+                        <small class="validation-message validation-info">Format: 16 ký tự (chữ thường a-z và số 0-9)</small>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="button-group">
+            <button type="button" class="btn btn-primary" onclick="validateEntireForm()">✅ Kiểm tra dữ liệu</button>
+            <button type="button" class="btn btn-primary" onclick="generateJSON()">🔄 Tạo JSON</button>
+            <button type="button" class="btn btn-primary" onclick="copyToClipboard()">📋 Copy JSON</button>
+            <button type="button" class="btn btn-primary" onclick="downloadJSON()">💾 Tải xuống JSON</button>
+            <button type="button" class="btn btn-primary" onclick="showImportDataModal()" id="importDataBtn">📥 Import JSON Data</button>
+        </div>
+
+        <div class="output-section">
+            <h2>📄 JSON Output</h2>
+            <textarea id="jsonOutput" readonly placeholder="JSON sẽ được hiển thị ở đây..."></textarea>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Đang xử lý...</p>
+        </div>
+    </div>
+
+    <!-- Include modals and scripts -->
+    <%- include('partials/modals') %>
+    
+    <script src="/js/config.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/validation.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
