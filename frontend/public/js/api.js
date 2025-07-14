@@ -114,7 +114,9 @@ class ApiService {
      * Get all scripts from a project
      */
     async getProjectScripts(projectId) {
-        return this.get(`${CONFIG.ENDPOINTS.PROJECTS}/${projectId}/scripts`);
+        // Add cache busting parameter
+        const timestamp = Date.now();
+        return this.get(`${CONFIG.ENDPOINTS.PROJECTS}/${projectId}/scripts?_t=${timestamp}`);
     }
 
     /**

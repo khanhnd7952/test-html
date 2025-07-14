@@ -149,16 +149,33 @@ function updateProjectStatus() {
             scriptInfoElement.innerHTML = `📜 ${scriptCount} script(s) | 🎯 ${currentScriptInfo}`;
         }
 
-        // Show delete button when there's a current project
+        // Show delete and rename buttons when there's a current project
         if (deleteBtn) {
             deleteBtn.style.display = 'inline-block';
+        }
+
+        const renameBtn = document.getElementById('renameProjectBtn');
+        if (renameBtn) {
+            renameBtn.style.display = 'inline-block';
+            // Add animation class after a short delay
+            setTimeout(() => {
+                renameBtn.classList.add('show');
+            }, 100);
         }
     } else {
         statusDiv.style.display = 'none';
 
-        // Hide delete button when no current project
+        // Hide delete and rename buttons when no current project
         if (deleteBtn) {
             deleteBtn.style.display = 'none';
+        }
+
+        const renameBtn = document.getElementById('renameProjectBtn');
+        if (renameBtn) {
+            renameBtn.classList.remove('show');
+            setTimeout(() => {
+                renameBtn.style.display = 'none';
+            }, 200);
         }
     }
 }

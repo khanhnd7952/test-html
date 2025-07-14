@@ -1,36 +1,49 @@
 // Validation functions for the AdData tool
 
 /**
+ * Simple string sanitization function
+ */
+function sanitizeString(str) {
+    if (!str || typeof str !== 'string') return '';
+    return str.trim().replace(/[<>]/g, '');
+}
+
+/**
  * Validate Ad ID format
  */
 function validateAdId(input) {
     const value = input.value.trim();
     const isValid = Utils.isValidAdId(value);
     const messageElement = input.parentElement.querySelector('.validation-message');
-    
+
     // Remove existing validation classes
-    input.classList.remove('validation-success', 'validation-error');
-    
+    input.classList.remove('validation-success', 'validation-error', 'valid', 'invalid');
+
     if (value === '') {
         // Empty is allowed
         if (messageElement) {
-            messageElement.textContent = 'Format: 16 ký tự (chữ thường a-z và số 0-9)';
+            messageElement.textContent = '16 ký tự: a-z, 0-9';
             messageElement.className = 'validation-message validation-info';
         }
         return true;
     }
-    
+
     if (isValid) {
-        input.classList.add('validation-success');
+        input.classList.add('validation-success', 'valid');
         if (messageElement) {
-            messageElement.textContent = '✓ Ad ID hợp lệ';
+            messageElement.textContent = '✅ Hợp lệ';
             messageElement.className = 'validation-message validation-success';
         }
         return true;
     } else {
-        input.classList.add('validation-error');
+        input.classList.add('validation-error', 'invalid');
         if (messageElement) {
-            messageElement.textContent = '✗ Ad ID không hợp lệ - phải có đúng 16 ký tự (a-z, 0-9)';
+            const length = value.length;
+            if (length !== 16) {
+                messageElement.textContent = `❌ Cần ${16 - length} ký tự nữa`;
+            } else {
+                messageElement.textContent = '❌ Chỉ được dùng a-z, 0-9';
+            }
             messageElement.className = 'validation-message validation-error';
         }
         return false;
@@ -41,7 +54,8 @@ function validateAdId(input) {
  * Validate project name
  */
 function validateProjectName(input) {
-    const value = Utils.sanitizeString(input.value);
+    if (!input) return false;
+    const value = sanitizeString(input.value);
     const isValid = value.length >= 1 && value.length <= 100;
     
     input.classList.remove('validation-success', 'validation-error');
@@ -59,7 +73,8 @@ function validateProjectName(input) {
  * Validate script ID
  */
 function validateScriptId(input) {
-    const value = Utils.sanitizeString(input.value);
+    if (!input) return false;
+    const value = sanitizeString(input.value);
     const isValid = value.length <= 50;
     
     input.classList.remove('validation-success', 'validation-error');
@@ -79,7 +94,7 @@ function validateScriptId(input) {
 function validateDescription(input) {
     if (!input) return true; // If input doesn't exist, consider it valid
 
-    const value = Utils.sanitizeString(input.value);
+    const value = sanitizeString(input.value);
     const isValid = value.length <= 500;
 
     input.classList.remove('validation-success', 'validation-error');
@@ -100,16 +115,11 @@ function validateEntireForm() {
     let isValid = true;
     const errors = [];
     
-    // Validate project name
-    const projectNameInput = document.getElementById('projectName');
-    if (!validateProjectName(projectNameInput)) {
-        isValid = false;
-        errors.push('Tên project không hợp lệ');
-    }
+    // Project name validation removed - now handled by dedicated rename functionality
     
-    // Validate script ID
+    // Validate script ID (only if element exists - for backward compatibility)
     const scriptIdInput = document.getElementById('scriptId');
-    if (!validateScriptId(scriptIdInput)) {
+    if (scriptIdInput && !validateScriptId(scriptIdInput)) {
         isValid = false;
         errors.push('Script ID không hợp lệ');
     }

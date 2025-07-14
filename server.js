@@ -115,28 +115,35 @@ app.get('/db-viewer', async (req, res) => {
             <tr>
               <th>ID</th>
               <th>Tên Project</th>
-              <th>Script ID</th>
+              <th>Scripts</th>
               <th>Ngày tạo</th>
               <th>Cập nhật</th>
               <th>Dữ liệu AdData</th>
             </tr>
           </thead>
           <tbody>
-            ${projects.map(project => `
+            ${projects.map(project => {
+              const scripts = project.data && project.data.scripts ? project.data.scripts : [];
+              const scriptsList = scripts.length > 0
+                ? scripts.map(s => `<span style="background: #e9ecef; padding: 2px 6px; border-radius: 3px; margin: 2px; display: inline-block; font-family: monospace; font-size: 11px;">${s.scriptId}: ${s.name}</span>`).join(' ')
+                : '<em>Không có scripts</em>';
+
+              return `
               <tr>
                 <td style="font-family: monospace; font-size: 11px;">${project.id}</td>
                 <td><strong>${project.name}</strong></td>
-                <td>${project.scriptId || '<em>Không có</em>'}</td>
+                <td style="max-width: 200px;">${scriptsList}</td>
                 <td>${new Date(project.createdAt).toLocaleString('vi-VN')}</td>
                 <td>${new Date(project.updatedAt).toLocaleString('vi-VN')}</td>
                 <td class="json-data">
                   <details>
-                    <summary>Xem JSON (${JSON.stringify(project.data).length} chars)</summary>
+                    <summary>Xem JSON (${JSON.stringify(project.data).length} chars) - ${scripts.length} scripts</summary>
                     <pre>${JSON.stringify(project.data, null, 2)}</pre>
                   </details>
                 </td>
               </tr>
-            `).join('')}
+              `;
+            }).join('')}
           </tbody>
         </table>
         `}

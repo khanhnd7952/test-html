@@ -324,8 +324,42 @@ const addProjectScript = async (req, res) => {
     }
 
     // Add script using model method
-    project.addScript(scriptId, name, data);
-    await project.save();
+    console.log(`🔄 Adding script ${scriptId} to project ${project.name}`);
+
+    try {
+      project.addScript(scriptId, name, data);
+      console.log(`✅ Script added to memory: ${project.data.scripts.length} scripts total`);
+    } catch (addError) {
+      console.error(`❌ Error in addScript:`, addError.message);
+      throw addError;
+    }
+
+    try {
+      console.log(`💾 Saving project to database...`);
+
+      // Use Project.update() static method instead of instance.save()
+      // This bypasses potential Sequelize instance caching/validation issues
+      const Project = require('../models/Project');
+
+      const updateResult = await Project.update(
+        {
+          data: project.data,
+          updatedAt: new Date()
+        },
+        {
+          where: { id: project.id }
+        }
+      );
+
+      console.log(`✅ Project saved to database successfully`);
+
+    } catch (saveError) {
+      console.error(`❌ Error saving project:`, saveError.message);
+      console.error(`❌ Save error details:`, saveError);
+      throw saveError;
+    }
+
+    console.log(`✅ Script added successfully: ${scriptId} to project ${project.name}`);
 
     res.status(201).json({
       success: true,
@@ -370,7 +404,32 @@ const updateProjectScript = async (req, res) => {
       });
     }
 
-    await project.save();
+    console.log(`🔄 Updating script ${scriptId} in project ${project.name}`);
+
+    try {
+      console.log(`💾 Saving project to database...`);
+
+      // Use Project.update() static method instead of instance.save()
+      // This bypasses potential Sequelize instance caching/validation issues
+      const Project = require('../models/Project');
+
+      await Project.update(
+        {
+          data: project.data,
+          updatedAt: new Date()
+        },
+        {
+          where: { id: project.id }
+        }
+      );
+
+      console.log(`✅ Script updated successfully: ${scriptId} in project ${project.name}`);
+
+    } catch (saveError) {
+      console.error(`❌ Error saving project:`, saveError.message);
+      console.error(`❌ Save error details:`, saveError);
+      throw saveError;
+    }
 
     res.json({
       success: true,
@@ -407,7 +466,32 @@ const deleteProjectScript = async (req, res) => {
       });
     }
 
-    await project.save();
+    console.log(`🗑️ Removing script ${scriptId} from project ${project.name}`);
+
+    try {
+      console.log(`💾 Saving project to database...`);
+
+      // Use Project.update() static method instead of instance.save()
+      // This bypasses potential Sequelize instance caching/validation issues
+      const Project = require('../models/Project');
+
+      await Project.update(
+        {
+          data: project.data,
+          updatedAt: new Date()
+        },
+        {
+          where: { id: project.id }
+        }
+      );
+
+      console.log(`✅ Script deleted successfully: ${scriptId} from project ${project.name}`);
+
+    } catch (saveError) {
+      console.error(`❌ Error saving project:`, saveError.message);
+      console.error(`❌ Save error details:`, saveError);
+      throw saveError;
+    }
 
     res.json({
       success: true,

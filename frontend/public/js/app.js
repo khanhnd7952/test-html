@@ -12,6 +12,293 @@ Object.assign(AppState, {
 
 // Global variables
 let currentProjectId = null;
+let autoSaveTimeout = null;
+let isDirty = false;
+
+// Auto-save settings
+let autoSaveEnabled = true;
+let autoSaveDelay = 30000; // 30 seconds - less intrusive
+let lastAutoSaveTime = null;
+
+// Project list state
+let allProjects = [];
+let filteredProjects = [];
+let currentPage = 1;
+let pageSize = 20;
+let sortBy = 'updatedAt';
+let searchQuery = '';
+
+/**
+ * Auto-save functionality
+ */
+function markDirty() {
+    isDirty = true;
+    updateSaveButtonState();
+
+    if (autoSaveEnabled) {
+        scheduleAutoSave();
+    }
+}
+
+function markClean() {
+    isDirty = false;
+    updateSaveButtonState();
+
+    // Clear any pending auto-save
+    if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
+        autoSaveTimeout = null;
+    }
+
+    // No visual indicators for silent auto-save
+}
+
+function updateSaveButtonState() {
+    const saveButtons = document.querySelectorAll('[onclick*="saveCurrentProject"]');
+    saveButtons.forEach(button => {
+        if (isDirty) {
+            // Subtle indication of unsaved changes - no animation to avoid flashing
+            button.style.background = 'linear-gradient(45deg, #007acc, #0056b3)';
+            button.title = autoSaveEnabled
+                ? `Có thay đổi chưa lưu - Sẽ tự động lưu sau ${autoSaveDelay/1000}s`
+                : 'Có thay đổi chưa lưu - Click để lưu';
+        } else {
+            button.style.background = '';
+            button.title = 'Lưu project hiện tại';
+        }
+    });
+}
+
+function scheduleAutoSave() {
+    if (!autoSaveEnabled || !AppState.currentProject || !AppState.currentScript) {
+        return; // Auto-save disabled or no project/script to save
+    }
+
+    if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
+    }
+
+    // Silent auto-save - no visual indicators to avoid flashing
+    autoSaveTimeout = setTimeout(() => {
+        performAutoSave();
+    }, autoSaveDelay);
+}
+
+async function performAutoSave() {
+    if (!isDirty || !AppState.currentProject || !AppState.currentScript) {
+        return;
+    }
+
+    try {
+        // Silent auto-save - no visual indicators
+        console.log('🔄 Auto-saving silently...');
+
+        // Collect current script data
+        const scriptData = collectCurrentScriptData();
+
+        // Update script data via API (without validation blocking)
+        const response = await api.updateProjectScript(
+            AppState.currentProject.id,
+            AppState.currentScript.scriptId,
+            {
+                name: AppState.currentScript.name,
+                data: scriptData
+            }
+        );
+
+        if (response.success) {
+            markClean();
+            lastAutoSaveTime = new Date();
+            AppState.lastSaved = lastAutoSaveTime;
+            updateProjectStatus();
+
+            // Silent success - only log to console
+            console.log(`✅ Auto-saved successfully at ${lastAutoSaveTime.toLocaleTimeString()}`);
+        } else {
+            // Silent error - only log to console, don't disturb user
+            console.warn('⚠️ Auto-save failed:', response.message);
+        }
+    } catch (error) {
+        // Silent error - only log to console
+        console.error('❌ Auto-save error:', error);
+    }
+}
+
+/**
+ * Clear all project and script state
+ */
+function clearProjectState() {
+    AppState.currentProject = null;
+    AppState.currentScriptId = null;
+    AppState.currentScript = null;
+    AppState.lastSaved = null;
+
+    clearFormData();
+    hideDataConfiguration();
+    markClean();
+
+    // Clear project name display
+    updateProjectNameDisplay(null);
+
+    // Clear script selector
+    const selector = document.getElementById('currentScriptSelector');
+    if (selector) {
+        selector.innerHTML = '<option value="">Chọn script...</option>';
+        selector.value = '';
+    }
+
+    // Update UI states
+    updateCurrentScriptInfo();
+    updateScriptButtonStates();
+
+    console.log('🧹 Cleared all project state');
+}
+
+/**
+ * Auto-save visual indicators - Removed for silent auto-save
+ * All auto-save operations are now silent to avoid UI flashing
+ */
+
+/**
+ * Toggle auto-save feature
+ */
+function toggleAutoSave() {
+    autoSaveEnabled = !autoSaveEnabled;
+
+    if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
+        autoSaveTimeout = null;
+    }
+
+    if (!autoSaveEnabled) {
+        showNotification(
+            '🔕 Đã tắt tự động lưu. Nhớ lưu thủ công!',
+            'warning',
+            4000
+        );
+    } else {
+        showNotification(
+            `🔔 Đã bật tự động lưu (${autoSaveDelay/1000}s, chế độ ngầm)`,
+            'success',
+            3000
+        );
+        if (isDirty) {
+            scheduleAutoSave();
+        }
+    }
+
+    updateAutoSaveToggleButton();
+}
+
+/**
+ * Update auto-save toggle button
+ */
+function updateAutoSaveToggleButton() {
+    const toggleBtn = document.getElementById('autoSaveToggle');
+    if (toggleBtn) {
+        toggleBtn.textContent = autoSaveEnabled ? '🔔 Auto-Save: ON' : '🔕 Auto-Save: OFF';
+        toggleBtn.className = autoSaveEnabled ? 'btn btn-success btn-sm' : 'btn btn-secondary btn-sm';
+        toggleBtn.title = autoSaveEnabled
+            ? `Tự động lưu sau ${autoSaveDelay/1000}s không hoạt động`
+            : 'Click để bật tự động lưu';
+    }
+}
+
+/**
+ * Change auto-save delay
+ */
+function changeAutoSaveDelay() {
+    const delaySelect = document.getElementById('autoSaveDelaySelect');
+    if (delaySelect) {
+        autoSaveDelay = parseInt(delaySelect.value);
+
+        // Clear current timeout and reschedule if needed
+        if (autoSaveTimeout) {
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = null;
+        }
+
+        if (autoSaveEnabled && isDirty) {
+            scheduleAutoSave();
+        }
+
+        updateAutoSaveToggleButton();
+
+        showNotification(
+            `⏱️ Đã đổi thời gian auto-save thành ${autoSaveDelay/1000} giây (chế độ ngầm)`,
+            'info',
+            3000
+        );
+    }
+}
+
+/**
+ * Show/Hide data configuration based on script selection
+ */
+function showDataConfiguration() {
+    const container = document.getElementById('dataConfigurationContainer');
+    if (container) {
+        container.style.display = 'block';
+        console.log('✅ Data configuration shown');
+    }
+}
+
+function hideDataConfiguration() {
+    const container = document.getElementById('dataConfigurationContainer');
+    if (container) {
+        container.style.display = 'none';
+        console.log('🔒 Data configuration hidden');
+    }
+}
+
+/**
+ * Update project name display
+ */
+function updateProjectNameDisplay(projectName = null) {
+    // Wait for DOM to be ready if needed
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => updateProjectNameDisplay(projectName));
+        return;
+    }
+
+    const displayElement = document.getElementById('projectNameDisplay');
+    const textElement = document.getElementById('projectNameText');
+
+    if (!displayElement || !textElement) {
+        console.error('Project name display elements not found:', {
+            displayElement: !!displayElement,
+            textElement: !!textElement,
+            readyState: document.readyState
+        });
+        return;
+    }
+
+    if (projectName) {
+        textElement.textContent = projectName;
+        displayElement.className = 'project-name-display has-project';
+        displayElement.title = `Project hiện tại: ${projectName}`;
+
+        // Show rename button
+        const renameBtn = document.getElementById('renameProjectBtn');
+        if (renameBtn) renameBtn.style.display = 'inline-block';
+
+        // Show delete button
+        const deleteBtn = document.getElementById('deleteProjectBtn');
+        if (deleteBtn) deleteBtn.style.display = 'inline-block';
+    } else {
+        textElement.textContent = 'Chưa có project nào được chọn';
+        displayElement.className = 'project-name-display no-project';
+        displayElement.title = 'Chưa có project nào được chọn';
+
+        // Hide rename button
+        const renameBtn = document.getElementById('renameProjectBtn');
+        if (renameBtn) renameBtn.style.display = 'none';
+
+        // Hide delete button
+        const deleteBtn = document.getElementById('deleteProjectBtn');
+        if (deleteBtn) deleteBtn.style.display = 'none';
+    }
+}
 
 /**
  * Initialize the application
@@ -22,6 +309,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load script IDs for dropdown
     loadScriptIds();
+
+    // Initialize project name display
+    updateProjectNameDisplay();
 
     // Load project if name is provided in URL params
     const urlParams = new URLSearchParams(window.location.search);
@@ -35,50 +325,16 @@ document.addEventListener('DOMContentLoaded', function() {
  * Setup event listeners
  */
 function setupEventListeners() {
-    // Project name input handler
-    const projectNameInput = document.getElementById('projectName');
-    if (projectNameInput) {
-        projectNameInput.addEventListener('change', handleProjectNameChange);
-        projectNameInput.addEventListener('input', handleProjectNameInput);
-    }
+    // No longer need project name input handlers since it's now a display-only element
 }
 
-/**
- * Handle project name input
- */
-function handleProjectNameInput() {
-    const projectName = document.getElementById('projectName').value.trim();
-    
-    // Update URL without reloading
-    if (projectName) {
-        const url = new URL(window.location);
-        url.searchParams.set('project', projectName);
-        window.history.replaceState({}, '', url);
-    } else {
-        const url = new URL(window.location);
-        url.searchParams.delete('project');
-        window.history.replaceState({}, '', url);
-    }
-}
-
-/**
- * Handle project name change
- */
-async function handleProjectNameChange() {
-    const projectName = document.getElementById('projectName').value.trim();
-    if (projectName) {
-        await loadProjectData(projectName);
-    }
-}
+// Removed handleProjectNameInput and handleProjectNameChange functions
+// since project name is now display-only
 
 /**
  * Load project data by name
  */
-async function loadProjectData(projectName = null) {
-    if (!projectName) {
-        projectName = document.getElementById('projectName').value.trim();
-    }
-    
+async function loadProjectData(projectName) {
     if (!projectName) {
         return;
     }
@@ -107,71 +363,20 @@ async function loadProjectData(projectName = null) {
  * Populate form with project data (new scripts structure)
  */
 function populateFormWithProjectData(project) {
-    // Set basic project info
-    document.getElementById('projectName').value = project.name || '';
+    // Set basic project info (don't clear state here as it's already cleared in loadProjectFromList)
+    updateProjectNameDisplay(project.name || '');
 
     if (!project.data || !project.data.scripts) {
-        clearFormData();
+        console.log('❌ Project has no scripts data');
         return;
     }
 
     // Load scripts for this project
     loadProjectScripts();
-    
-    const data = project.data;
-    
-    // Populate DefaultAdUnitData
-    if (data.defaultAdUnitData) {
-        const defaultData = data.defaultAdUnitData;
-        document.getElementById('interstitialId').value = defaultData.interstitialId || '';
-        document.getElementById('rewardedVideoId').value = defaultData.rewardedVideoId || '';
-        document.getElementById('bannerId').value = defaultData.bannerId || '';
-        document.getElementById('aoaId').value = defaultData.aoaId || '';
-    }
-    
-    // Populate BidfloorConfig
-    if (data.bidfloorConfig) {
-        const bidfloorConfig = data.bidfloorConfig;
-        
-        // Interstitial
-        if (bidfloorConfig.interstitial) {
-            const interstitial = bidfloorConfig.interstitial;
-            document.getElementById('interstitialDefaultId').value = interstitial.defaultId || '';
-            document.getElementById('interstitialLoadCount').value = interstitial.loadCount || 3;
-            document.getElementById('interstitialAutoReloadInterval').value = interstitial.autoReloadInterval || 99999;
-            document.getElementById('interstitialAutoRetry').checked = interstitial.autoRetry || false;
-            
-            // Populate bidfloor IDs
-            populateBidfloorIds('interstitial', interstitial.bidfloorIds || []);
-        }
-        
-        // Rewarded
-        if (bidfloorConfig.rewarded) {
-            const rewarded = bidfloorConfig.rewarded;
-            document.getElementById('rewardedDefaultId').value = rewarded.defaultId || '';
-            document.getElementById('rewardedLoadCount').value = rewarded.loadCount || 3;
-            document.getElementById('rewardedAutoReloadInterval').value = rewarded.autoReloadInterval || 99999;
-            document.getElementById('rewardedAutoRetry').checked = rewarded.autoRetry || false;
-            
-            // Populate bidfloor IDs
-            populateBidfloorIds('rewarded', rewarded.bidfloorIds || []);
-        }
-        
-        // Banner
-        if (bidfloorConfig.banner) {
-            document.getElementById('bidfloorBanner').value = bidfloorConfig.banner.bidfloorBanner || '';
-        }
-    }
-    
-    // Trigger validation for all inputs
-    setTimeout(() => {
-        const allInputs = document.querySelectorAll('input[type="text"], input[type="number"]');
-        allInputs.forEach(input => {
-            if (input.maxLength === 16) {
-                validateAdId(input);
-            }
-        });
-    }, 100);
+
+    // Don't populate form data from project level - wait for user to select a script
+    // Form data should only come from selected script
+    console.log(`✅ Switched to project: ${project.name}`);
 }
 
 /**
@@ -206,12 +411,10 @@ function populateBidfloorIds(type, ids) {
  * Collect form data (new scripts structure)
  */
 function collectFormData() {
-    const projectName = document.getElementById('projectName').value.trim();
-
     if (!AppState.currentProject) {
-        // Creating new project
+        // Creating new project - should not happen in new UI flow
         return {
-            name: projectName,
+            name: 'New Project',
             data: {
                 scripts: []
             }
@@ -222,7 +425,7 @@ function collectFormData() {
     if (!AppState.currentScript) {
         return {
             id: AppState.currentProject.id,
-            name: projectName,
+            name: AppState.currentProject.name,
             data: AppState.currentProject.data
         };
     }
@@ -317,11 +520,11 @@ async function saveCurrentProject() {
             return;
         }
 
-        // Validate form data
+        // Note: We allow saving even with validation errors
+        // Validation only blocks JSON export, not project saving
         const isValid = validateEntireForm();
         if (!isValid) {
-            showNotification('Vui lòng sửa các lỗi validation trước khi lưu', 'error');
-            return;
+            showNotification('⚠️ Có lỗi validation nhưng vẫn lưu project (không thể export JSON)', 'warning');
         }
 
         // Collect current script data and update project
@@ -342,6 +545,9 @@ async function saveCurrentProject() {
             AppState.currentScript.data = scriptData;
             updateCurrentScriptInfo();
 
+            // Mark as clean (no unsaved changes)
+            markClean();
+
             showNotification('Đã lưu script thành công', 'success');
         }
 
@@ -352,9 +558,125 @@ async function saveCurrentProject() {
 }
 
 /**
+ * Create quick project with auto-generated name and default script
+ */
+async function createQuickProject() {
+    try {
+        // Generate unique project name
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '_');
+        const projectName = `Project_${timestamp}`;
+
+        // Create project with default script
+        const completeScriptData = {
+            defaultAdUnitData: {
+                interstitialId: '',
+                rewardedVideoId: '',
+                bannerId: '',
+                aoaId: ''
+            },
+            bidfloorConfig: {
+                interstitial: {
+                    defaultId: '',
+                    bidfloorIds: [],
+                    loadCount: 3,
+                    autoReloadInterval: 99999,
+                    autoRetry: false
+                },
+                rewarded: {
+                    defaultId: '',
+                    bidfloorIds: [],
+                    loadCount: 3,
+                    autoReloadInterval: 99999,
+                    autoRetry: false
+                },
+                banner: {
+                    bidfloorBanner: ''
+                }
+            }
+        };
+
+        const projectData = {
+            name: projectName,
+            data: {
+                scripts: [
+                    {
+                        scriptId: 'default_script',
+                        name: 'Default',
+                        data: completeScriptData
+                    }
+                ]
+            }
+        };
+
+        // Force create new project
+        const response = await api.createProject(projectData);
+
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to create project');
+        }
+
+        const savedProject = response.data;
+
+        // Update state
+        AppState.currentProject = savedProject;
+        AppState.currentScriptId = 'default_script';
+        AppState.currentScript = savedProject.data.scripts[0];
+
+        // Update UI
+        updateProjectNameDisplay(projectName);
+        updateProjectStatus();
+
+        try {
+            await loadProjectScripts();
+
+            // After loading scripts, ensure we're on the created script
+            if (AppState.currentScriptId === 'default_script') {
+                const selector = document.getElementById('currentScriptSelector');
+                if (selector) {
+                    selector.value = 'default_script';
+                }
+                showDataConfiguration();
+                console.log(`✅ Auto-selected created script: default_script`);
+            }
+        } catch (scriptsError) {
+            console.error('Error loading project scripts:', scriptsError);
+        }
+
+        // Populate form with default data
+        try {
+            clearFormData();
+            populateFormWithScriptData(completeScriptData);
+            console.log('✅ Form populated with default data');
+        } catch (formError) {
+            console.error('Error populating form:', formError);
+        }
+
+        showNotification(`⚡ Đã tạo project nhanh: ${projectName}`, 'success');
+        console.log(`🎉 Created quick project: ${projectName} (ID: ${savedProject.id})`);
+
+    } catch (error) {
+        console.error('Error creating quick project:', error);
+        showNotification(`Lỗi khi tạo project nhanh: ${error.message}`, 'error');
+    }
+}
+
+/**
  * Create new project
  */
 function createNewProject() {
+    // Show confirmation if there's a current project
+    if (AppState.currentProject) {
+        const confirmed = confirm(
+            `Bạn đang có project "${AppState.currentProject.name}" đang mở.\n\n` +
+            `Tạo project mới sẽ chuyển sang project mới (project cũ vẫn được lưu).\n\n` +
+            `Bạn có muốn tiếp tục?`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+    }
+
     openModal('createProjectModal');
 
     // Clear the form inputs
@@ -406,7 +728,7 @@ function deleteCurrentProject() {
  */
 async function processCreateProject() {
     const projectName = document.getElementById('newProjectName').value.trim();
-    const scriptId = document.getElementById('newProjectScriptId').value.trim() || 'DEFAULT';
+    const scriptId = document.getElementById('newProjectScriptId').value.trim() || 'default_script';
     const clearForm = document.getElementById('clearFormData').checked;
 
     if (!projectName) {
@@ -416,27 +738,70 @@ async function processCreateProject() {
 
     try {
         // Check if project name already exists
-        const existingProject = await loadProjectByName(projectName);
-        if (existingProject) {
-            showNotification('Tên project đã tồn tại. Vui lòng chọn tên khác.', 'error');
-            return;
+        try {
+            const existingProject = await loadProjectByName(projectName);
+            if (existingProject) {
+                showNotification('Tên project đã tồn tại. Vui lòng chọn tên khác.', 'error');
+                return;
+            }
+        } catch (checkError) {
+            // If error checking project name, assume it doesn't exist and continue
+            console.log('Project name check completed (project does not exist)');
         }
 
         // Create project with initial script
+        const scriptData = clearForm ? getDefaultScriptData() : collectCurrentScriptData();
+
+        // Ensure script data has required fields
+        const completeScriptData = {
+            defaultAdUnitData: scriptData.defaultAdUnitData || {
+                interstitialId: '',
+                rewardedVideoId: '',
+                bannerId: '',
+                aoaId: ''
+            },
+            bidfloorConfig: scriptData.bidfloorConfig || {
+                interstitial: {
+                    defaultId: '',
+                    bidfloorIds: [],
+                    loadCount: 3,
+                    autoReloadInterval: 99999,
+                    autoRetry: false
+                },
+                rewarded: {
+                    defaultId: '',
+                    bidfloorIds: [],
+                    loadCount: 3,
+                    autoReloadInterval: 99999,
+                    autoRetry: false
+                },
+                banner: {
+                    bidfloorBanner: ''
+                }
+            }
+        };
+
         const projectData = {
             name: projectName,
             data: {
                 scripts: [
                     {
                         scriptId: scriptId,
-                        name: `Script ${scriptId}`,
-                        data: clearForm ? getDefaultScriptData() : collectCurrentScriptData()
+                        name: scriptId === 'default_script' ? 'Default' : `Script ${scriptId}`,
+                        data: completeScriptData
                     }
                 ]
             }
         };
 
-        const savedProject = await saveProject(projectData);
+        // Force create new project (not update existing)
+        const response = await api.createProject(projectData);
+
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to create project');
+        }
+
+        const savedProject = response.data;
 
         // Update state
         AppState.currentProject = savedProject;
@@ -444,24 +809,56 @@ async function processCreateProject() {
         AppState.currentScript = savedProject.data.scripts[0];
 
         // Update UI
-        document.getElementById('projectName').value = projectName;
+        updateProjectNameDisplay(projectName);
         updateProjectStatus();
-        await loadProjectScripts();
+
+        try {
+            await loadProjectScripts();
+
+            // After loading scripts, ensure we're on the created script
+            if (AppState.currentScriptId === scriptId) {
+                const selector = document.getElementById('currentScriptSelector');
+                if (selector) {
+                    selector.value = scriptId;
+                }
+                showDataConfiguration();
+                console.log(`✅ Auto-selected created script: ${scriptId}`);
+            }
+        } catch (scriptsError) {
+            console.error('Error loading project scripts:', scriptsError);
+            // Don't throw error, just log it
+        }
 
         // Clear form if requested
         if (clearForm) {
-            clearFormData();
-            populateFormWithScriptData(getDefaultScriptData());
+            try {
+                clearFormData();
+                populateFormWithScriptData(getDefaultScriptData());
+                console.log('✅ Form cleared and populated with default data');
+            } catch (formError) {
+                console.error('Error populating form:', formError);
+                // Don't throw error, just log it
+            }
+        } else {
+            // If not clearing form, still populate with current script data
+            try {
+                populateFormWithScriptData(savedProject.data.scripts[0].data);
+                console.log('✅ Form populated with current script data');
+            } catch (formError) {
+                console.error('Error populating form with current data:', formError);
+            }
         }
 
         // Close modal
         closeModal('createProjectModal');
 
-        showNotification(`Đã tạo project: ${projectName}`, 'success');
+        showNotification(`✅ Đã tạo project mới: ${projectName}`, 'success');
+        console.log(`🎉 Created new project: ${projectName} (ID: ${savedProject.id})`);
 
     } catch (error) {
         console.error('Error creating project:', error);
-        showNotification('Lỗi khi tạo project', 'error');
+        console.error('Error details:', error.message, error.stack);
+        showNotification(`Lỗi khi tạo project: ${error.message}`, 'error');
     }
 }
 
@@ -534,7 +931,11 @@ function hasAdData(data) {
 function clearCurrentData() {
     clearFormData();
     AppState.currentProject = null;
+    AppState.currentScript = null;
+    AppState.currentScriptId = null;
     updateProjectStatus();
+    updateCurrentScriptInfo();
+    updateProjectNameDisplay();
     showNotification('Đã xóa dữ liệu', 'success');
 }
 
@@ -542,40 +943,73 @@ function clearCurrentData() {
  * Clear form data (renamed from clearForm for clarity)
  */
 function clearFormData() {
-    // Clear all text inputs except project name and script ID
-    const adDataInputs = document.querySelectorAll('#adDataForm input[type="text"]:not(#projectName):not(#scriptId), #adDataForm textarea');
-    adDataInputs.forEach(input => {
-        input.value = '';
-        input.classList.remove('validation-success', 'validation-error');
-    });
+    try {
+        // Clear all text inputs except script ID
+        const adDataInputs = document.querySelectorAll('#adDataForm input[type="text"]:not(#scriptId), #adDataForm textarea');
+        adDataInputs.forEach(input => {
+            input.value = '';
+            input.classList.remove('validation-success', 'validation-error');
+        });
 
-    // Reset numeric inputs to default values
-    document.getElementById('interstitialLoadCount').value = 3;
-    document.getElementById('interstitialAutoReloadInterval').value = 99999;
-    document.getElementById('rewardedLoadCount').value = 3;
-    document.getElementById('rewardedAutoReloadInterval').value = 99999;
+        // Reset numeric inputs to default values
+        const setElementValueSafe = (id, value) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.value = value;
+            } else {
+                console.warn(`Element with id '${id}' not found in clearFormData`);
+            }
+        };
 
-    // Reset checkboxes
-    document.getElementById('interstitialAutoRetry').checked = false;
-    document.getElementById('rewardedAutoRetry').checked = false;
+        setElementValueSafe('interstitialLoadCount', 3);
+        setElementValueSafe('interstitialAutoReloadInterval', 99999);
+        setElementValueSafe('rewardedLoadCount', 3);
+        setElementValueSafe('rewardedAutoReloadInterval', 99999);
 
-    // Clear bidfloor ID arrays
-    clearBidfloorIds('interstitial');
-    clearBidfloorIds('rewarded');
+        // Reset checkboxes
+        const setCheckboxSafe = (id, value) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.checked = value;
+            } else {
+                console.warn(`Checkbox with id '${id}' not found in clearFormData`);
+            }
+        };
 
-    // Clear JSON output
-    document.getElementById('jsonOutput').value = '';
+        setCheckboxSafe('interstitialAutoRetry', false);
+        setCheckboxSafe('rewardedAutoRetry', false);
+
+        // Clear bidfloor ID arrays
+        clearBidfloorIds('interstitial');
+        clearBidfloorIds('rewarded');
+
+        // Clear JSON output
+        setElementValueSafe('jsonOutput', '');
+
+    } catch (error) {
+        console.error('Error clearing form data:', error);
+        throw error; // Re-throw to be caught by caller
+    }
 }
 
 /**
- * Show project list modal
+ * Show project list modal with search and pagination
  */
 async function showProjectList() {
     openModal('projectListModal');
 
+    // Reset state
+    currentPage = 1;
+    searchQuery = '';
+
+    // Setup search listener
+    setupProjectSearch();
+
     try {
         const projects = await loadProjects();
-        renderProjectList(projects);
+        allProjects = projects;
+        filteredProjects = [...projects];
+        renderProjectListWithPagination();
     } catch (error) {
         console.error('Error loading project list:', error);
         document.getElementById('projectList').innerHTML =
@@ -584,13 +1018,134 @@ async function showProjectList() {
 }
 
 /**
+ * Show rename project modal
+ */
+function showRenameProjectModal() {
+    if (!AppState.currentProject) {
+        showNotification('Vui lòng chọn project để đổi tên', 'warning');
+        return;
+    }
+
+    // Populate current project name
+    document.getElementById('currentProjectNameDisplay').value = AppState.currentProject.name;
+    document.getElementById('newProjectNameInput').value = '';
+
+    openModal('renameProjectModal');
+
+    // Focus on new name input and setup keyboard shortcuts
+    setTimeout(() => {
+        const input = document.getElementById('newProjectNameInput');
+        input.focus();
+
+        // Add Enter key handler
+        input.onkeydown = function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                processRenameProject();
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                closeModal('renameProjectModal');
+            }
+        };
+    }, 100);
+}
+
+/**
+ * Validate rename input
+ */
+function validateRenameInput() {
+    const input = document.getElementById('newProjectNameInput');
+    const message = document.getElementById('renameValidationMessage');
+    const value = input.value.trim();
+
+    if (!value) {
+        message.style.display = 'none';
+        return false;
+    }
+
+    if (value === AppState.currentProject.name) {
+        message.textContent = 'Tên mới phải khác tên hiện tại';
+        message.className = 'validation-message validation-error';
+        message.style.display = 'block';
+        return false;
+    }
+
+    if (value.length > 100) {
+        message.textContent = 'Tên project không được quá 100 ký tự';
+        message.className = 'validation-message validation-error';
+        message.style.display = 'block';
+        return false;
+    }
+
+    message.textContent = 'Tên project hợp lệ';
+    message.className = 'validation-message validation-success';
+    message.style.display = 'block';
+    return true;
+}
+
+/**
+ * Process rename project
+ */
+async function processRenameProject() {
+    try {
+        const newName = document.getElementById('newProjectNameInput').value.trim();
+
+        // Validate input
+        if (!validateRenameInput()) {
+            showNotification('Vui lòng sửa lỗi validation trước khi đổi tên', 'warning');
+            return;
+        }
+
+        // Show confirmation
+        const confirmed = confirm(`Bạn có chắc chắn muốn đổi tên project từ "${AppState.currentProject.name}" thành "${newName}"?`);
+        if (!confirmed) {
+            return;
+        }
+
+        // Update project name via API
+        const response = await api.updateProject(AppState.currentProject.id, {
+            name: newName
+        });
+
+        if (response.success) {
+            // Update local state
+            const oldName = AppState.currentProject.name;
+            AppState.currentProject.name = newName;
+
+            // Update UI
+            updateProjectNameDisplay(newName);
+            updateProjectStatus();
+
+            closeModal('renameProjectModal');
+            showNotification(`Đã đổi tên project từ "${oldName}" thành "${newName}"`, 'success');
+        }
+
+    } catch (error) {
+        console.error('Error renaming project:', error);
+        if (error.message.includes('already exists')) {
+            showNotification('Tên project đã tồn tại. Vui lòng chọn tên khác.', 'error');
+        } else {
+            showNotification('Lỗi khi đổi tên project', 'error');
+        }
+    }
+}
+
+/**
  * Load project from list
  */
 async function loadProjectFromList(projectId) {
     try {
+        console.log(`🔄 Loading project from list: ${projectId}`);
+
         const response = await api.getProjectById(projectId);
 
         if (response.success) {
+            console.log(`📋 Loaded project: ${response.data.name}`);
+
+            // Clear all current state before loading new project
+            clearProjectState();
+
+            // Set new project and populate
             AppState.currentProject = response.data;
             populateFormWithProjectData(response.data);
             updateProjectStatus();
@@ -776,26 +1331,74 @@ async function addNewScriptId() {
  */
 async function loadProjectScripts() {
     if (!AppState.currentProject || !AppState.currentProject.id) {
+        console.log('❌ No current project to load scripts for');
         return;
     }
 
     try {
+        console.log(`🔄 Loading scripts for project: ${AppState.currentProject.name} (${AppState.currentProject.id})`);
         const response = await api.getProjectScripts(AppState.currentProject.id);
 
         if (response.success) {
             const scripts = response.data.scripts || [];
+            console.log(`📋 Found ${scripts.length} scripts:`, scripts.map(s => `${s.name} (${s.scriptId})`));
+
             updateScriptSelector(scripts);
 
-            // Auto-select first script if available
-            if (scripts.length > 0 && !AppState.currentScriptId) {
-                AppState.currentScriptId = scripts[0].scriptId;
-                AppState.currentScript = scripts[0];
+            // Always clear form data when loading project scripts to avoid data from previous project
+            clearFormData();
+
+            // Check if we already have a current script (e.g., from creating new project)
+            if (AppState.currentScriptId && AppState.currentScript) {
+                // Keep the current script, just update UI and populate with correct data
+                const selector = document.getElementById('currentScriptSelector');
+                if (selector) {
+                    selector.value = AppState.currentScriptId;
+                }
                 updateCurrentScriptInfo();
-                populateFormWithScriptData(scripts[0].data);
+                populateFormWithScriptData(AppState.currentScript.data);
+                updateScriptButtonStates();
+                showDataConfiguration();
+                markClean(); // Mark as clean since we just loaded fresh data
+                console.log(`✅ Keeping current script: ${AppState.currentScript.name}`);
+            } else {
+                // Auto-select 'default_script' script if it exists
+                const defaultScript = scripts.find(script => script.scriptId === 'default_script');
+                if (defaultScript) {
+                    console.log(`🎯 Auto-selecting default script: ${defaultScript.name}`);
+
+                    // Set the selector value
+                    const selector = document.getElementById('currentScriptSelector');
+                    if (selector) {
+                        selector.value = 'default_script';
+                    }
+
+                    // Load the default script
+                    AppState.currentScriptId = 'default_script';
+                    AppState.currentScript = defaultScript;
+                    updateCurrentScriptInfo();
+                    populateFormWithScriptData(defaultScript.data);
+                    updateScriptButtonStates();
+                    showDataConfiguration();
+                    markClean(); // Mark as clean when auto-loading script
+
+                    console.log(`✅ Auto-loaded default script successfully`);
+                } else {
+                    // No default script - let user choose
+                    AppState.currentScriptId = null;
+                    AppState.currentScript = null;
+                    clearFormData();
+                    updateCurrentScriptInfo();
+                    hideDataConfiguration();
+
+                    console.log(`✅ Loaded ${scripts.length} scripts. User needs to select a script.`);
+                }
             }
+        } else {
+            console.error('❌ Failed to load project scripts:', response.message);
         }
     } catch (error) {
-        console.error('Error loading project scripts:', error);
+        console.error('❌ Error loading project scripts:', error);
     }
 }
 
@@ -804,6 +1407,12 @@ async function loadProjectScripts() {
  */
 function updateScriptSelector(scripts) {
     const selector = document.getElementById('currentScriptSelector');
+    if (!selector) {
+        console.error('❌ Script selector element not found');
+        return;
+    }
+
+    // Clear existing options
     selector.innerHTML = '<option value="">Chọn script...</option>';
 
     scripts.forEach(script => {
@@ -816,10 +1425,17 @@ function updateScriptSelector(scripts) {
     // Set current selection
     if (AppState.currentScriptId) {
         selector.value = AppState.currentScriptId;
+        console.log(`🎯 Set selector to current script: ${AppState.currentScriptId}`);
     }
 
-    // Update button states
-    updateScriptButtonStates();
+    // Enable/disable script management buttons
+    const editBtn = document.getElementById('editScriptBtn');
+    const deleteBtn = document.getElementById('deleteScriptBtn');
+
+    if (editBtn) editBtn.disabled = scripts.length === 0;
+    if (deleteBtn) deleteBtn.disabled = scripts.length === 0;
+
+    console.log(`📋 Updated script selector with ${scripts.length} scripts`);
 }
 
 /**
@@ -835,6 +1451,7 @@ async function switchScript() {
         clearFormData();
         updateCurrentScriptInfo();
         updateScriptButtonStates();
+        hideDataConfiguration();
         return;
     }
 
@@ -847,6 +1464,10 @@ async function switchScript() {
             updateCurrentScriptInfo();
             populateFormWithScriptData(response.data.data);
             updateScriptButtonStates();
+            showDataConfiguration();
+
+            // Mark as clean when switching to a script
+            markClean();
         }
     } catch (error) {
         console.error('Error switching script:', error);
@@ -859,12 +1480,15 @@ async function switchScript() {
  */
 function updateCurrentScriptInfo() {
     const infoDiv = document.getElementById('currentScriptInfo');
+    const noScriptDiv = document.getElementById('noScriptSelected');
     const nameSpan = document.getElementById('currentScriptName');
     const idSpan = document.getElementById('currentScriptId');
     const statusSpan = document.getElementById('currentScriptStatus');
 
     if (AppState.currentScript) {
         infoDiv.style.display = 'block';
+        if (noScriptDiv) noScriptDiv.style.display = 'none';
+
         nameSpan.textContent = AppState.currentScript.name;
         idSpan.textContent = AppState.currentScript.scriptId;
 
@@ -875,6 +1499,7 @@ function updateCurrentScriptInfo() {
         statusSpan.className = hasData ? 'status-success' : 'status-warning';
     } else {
         infoDiv.style.display = 'none';
+        if (noScriptDiv) noScriptDiv.style.display = 'block';
     }
 }
 
@@ -974,8 +1599,8 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
 
             const formData = new FormData(this);
-            const scriptId = formData.get('scriptId').trim();
-            const name = formData.get('name').trim();
+            const scriptId = formData.get('scriptId').trim() || 'default_script';
+            const name = formData.get('name').trim() || (scriptId === 'default_script' ? 'Default' : `Script ${scriptId}`);
             const copyCurrentData = document.getElementById('copyCurrentData').checked;
 
             if (!scriptId || !name) {
@@ -984,6 +1609,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             try {
+                // Check if script ID already exists in current project
+                const currentScripts = await api.getProjectScripts(AppState.currentProject.id);
+                if (currentScripts.success) {
+                    const existingScript = currentScripts.data.scripts.find(s => s.scriptId === scriptId);
+                    if (existingScript) {
+                        showNotification(`Script ID "${scriptId}" đã tồn tại trong project này`, 'error');
+                        return;
+                    }
+                }
+
                 let scriptData = null;
 
                 if (copyCurrentData && AppState.currentScript) {
@@ -998,14 +1633,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (response.success) {
                     closeModal('addScriptModal');
+
+                    // Force reload project scripts with cache busting
+                    console.log('🔄 Reloading project scripts after adding new script...');
                     await loadProjectScripts();
 
                     // Switch to new script
                     AppState.currentScriptId = scriptId;
-                    document.getElementById('currentScriptSelector').value = scriptId;
+                    const selector = document.getElementById('currentScriptSelector');
+                    selector.value = scriptId;
                     await switchScript();
 
+                    // Force update UI
+                    updateCurrentScriptInfo();
+
                     showNotification(`Đã thêm script "${name}" thành công`, 'success');
+                    console.log(`✅ Script "${name}" (${scriptId}) added successfully`);
                 }
             } catch (error) {
                 console.error('Error adding script:', error);
@@ -1062,47 +1705,69 @@ document.addEventListener('DOMContentLoaded', function() {
 function populateFormWithScriptData(scriptData) {
     if (!scriptData) return;
 
-    // Populate DefaultAdUnitData
-    const defaultData = scriptData.defaultAdUnitData || {};
-    document.getElementById('interstitialId').value = defaultData.interstitialId || '';
-    document.getElementById('rewardedVideoId').value = defaultData.rewardedVideoId || '';
-    document.getElementById('bannerId').value = defaultData.bannerId || '';
-    document.getElementById('aoaId').value = defaultData.aoaId || '';
+    try {
+        // Populate DefaultAdUnitData
+        const defaultData = scriptData.defaultAdUnitData || {};
 
-    // Populate BidfloorConfig
-    const bidfloorConfig = scriptData.bidfloorConfig || {};
+        const setElementValue = (id, value) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.value = value || '';
+            } else {
+                console.warn(`Element with id '${id}' not found`);
+            }
+        };
 
-    // Interstitial
-    const interstitial = bidfloorConfig.interstitial || {};
-    document.getElementById('interstitialDefaultId').value = interstitial.defaultId || '';
-    document.getElementById('interstitialLoadCount').value = interstitial.loadCount || 3;
-    document.getElementById('interstitialAutoReloadInterval').value = interstitial.autoReloadInterval || 99999;
-    document.getElementById('interstitialAutoRetry').checked = interstitial.autoRetry || false;
+        setElementValue('interstitialId', defaultData.interstitialId);
+        setElementValue('rewardedVideoId', defaultData.rewardedVideoId);
+        setElementValue('bannerId', defaultData.bannerId);
+        setElementValue('aoaId', defaultData.aoaId);
 
-    // Populate bidfloor IDs
-    const bidfloorIds = interstitial.bidfloorIds || [];
-    bidfloorIds.forEach((id, index) => {
-        const input = document.getElementById(`interstitialBidfloorId${index + 1}`);
-        if (input) input.value = id;
-    });
+        // Populate BidfloorConfig
+        const bidfloorConfig = scriptData.bidfloorConfig || {};
 
-    // Rewarded
-    const rewarded = bidfloorConfig.rewarded || {};
-    document.getElementById('rewardedDefaultId').value = rewarded.defaultId || '';
-    document.getElementById('rewardedLoadCount').value = rewarded.loadCount || 3;
-    document.getElementById('rewardedAutoReloadInterval').value = rewarded.autoReloadInterval || 99999;
-    document.getElementById('rewardedAutoRetry').checked = rewarded.autoRetry || false;
+        // Interstitial
+        const interstitial = bidfloorConfig.interstitial || {};
+        setElementValue('interstitialDefaultId', interstitial.defaultId);
+        setElementValue('interstitialLoadCount', interstitial.loadCount || 3);
+        setElementValue('interstitialAutoReloadInterval', interstitial.autoReloadInterval || 99999);
 
-    // Populate rewarded bidfloor IDs
-    const rewardedBidfloorIds = rewarded.bidfloorIds || [];
-    rewardedBidfloorIds.forEach((id, index) => {
-        const input = document.getElementById(`rewardedBidfloorId${index + 1}`);
-        if (input) input.value = id;
-    });
+        const autoRetryElement = document.getElementById('interstitialAutoRetry');
+        if (autoRetryElement) {
+            autoRetryElement.checked = interstitial.autoRetry || false;
+        }
 
-    // Banner
-    const banner = bidfloorConfig.banner || {};
-    document.getElementById('bidfloorBanner').value = banner.bidfloorBanner || '';
+        // Populate bidfloor IDs
+        const bidfloorIds = interstitial.bidfloorIds || [];
+        bidfloorIds.forEach((id, index) => {
+            setElementValue(`interstitialBidfloorId${index + 1}`, id);
+        });
+
+        // Rewarded
+        const rewarded = bidfloorConfig.rewarded || {};
+        setElementValue('rewardedDefaultId', rewarded.defaultId);
+        setElementValue('rewardedLoadCount', rewarded.loadCount || 3);
+        setElementValue('rewardedAutoReloadInterval', rewarded.autoReloadInterval || 99999);
+
+        const rewardedAutoRetryElement = document.getElementById('rewardedAutoRetry');
+        if (rewardedAutoRetryElement) {
+            rewardedAutoRetryElement.checked = rewarded.autoRetry || false;
+        }
+
+        // Populate rewarded bidfloor IDs
+        const rewardedBidfloorIds = rewarded.bidfloorIds || [];
+        rewardedBidfloorIds.forEach((id, index) => {
+            setElementValue(`rewardedBidfloorId${index + 1}`, id);
+        });
+
+        // Banner
+        const banner = bidfloorConfig.banner || {};
+        setElementValue('bidfloorBanner', banner.bidfloorBanner);
+
+    } catch (error) {
+        console.error('Error populating form with script data:', error);
+        throw error; // Re-throw to be caught by caller
+    }
 }
 
 
@@ -1174,11 +1839,18 @@ async function processImport() {
  */
 function generateJSON() {
     try {
+        // Validate form before generating JSON
+        const isValid = validateEntireForm();
+        if (!isValid) {
+            showNotification('❌ Không thể tạo JSON: Có lỗi validation. Vui lòng sửa các lỗi trước.', 'error');
+            return;
+        }
+
         const formData = collectFormData();
         const jsonOutput = JSON.stringify(formData.data, null, 2);
 
         document.getElementById('jsonOutput').value = jsonOutput;
-        showNotification('JSON đã được tạo thành công', 'success');
+        showNotification('✅ JSON đã được tạo thành công', 'success');
     } catch (error) {
         console.error('Error generating JSON:', error);
         showNotification('Lỗi khi tạo JSON', 'error');
@@ -1205,7 +1877,7 @@ async function copyToClipboard() {
 }
 
 /**
- * Download JSON file
+ * Download JSON file with project_name_script_name format
  */
 function downloadJSON() {
     const jsonOutput = document.getElementById('jsonOutput');
@@ -1214,8 +1886,15 @@ function downloadJSON() {
         generateJSON();
     }
 
-    const projectName = document.getElementById('projectName').value.trim() || 'addata';
-    const filename = `${projectName}_addata.json`;
+    // Generate filename with project_name_script_name format
+    const projectName = AppState.currentProject?.name || 'project';
+    const scriptName = AppState.currentScript?.name || 'script';
+
+    // Sanitize names for filename (remove special characters)
+    const sanitizedProjectName = projectName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const sanitizedScriptName = scriptName.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    const filename = `${sanitizedProjectName}_${sanitizedScriptName}.json`;
 
     const blob = new Blob([jsonOutput.value], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1413,58 +2092,240 @@ function clearBidfloorIds(type) {
 
 
 /**
- * Show project list modal
+ * Setup project search functionality
  */
-async function showProjectList() {
-    openModal('projectListModal');
+function setupProjectSearch() {
+    const searchInput = document.getElementById('projectSearchInput');
+    if (searchInput) {
+        // Clear previous listeners
+        searchInput.removeEventListener('input', handleProjectSearch);
 
-    try {
-        const projects = await loadProjects();
-        renderProjectList(projects);
-    } catch (error) {
-        console.error('Error loading project list:', error);
-        document.getElementById('projectList').innerHTML =
-            '<div class="loading-projects">Lỗi khi tải danh sách projects</div>';
+        // Add new listener with debouncing
+        searchInput.addEventListener('input', Utils.debounce(handleProjectSearch, 300));
+        searchInput.value = searchQuery;
     }
 }
 
 /**
- * Load project from list
+ * Handle project search
  */
-async function loadProjectFromList(projectId) {
-    try {
-        const response = await api.getProjectById(projectId);
+function handleProjectSearch() {
+    const searchInput = document.getElementById('projectSearchInput');
+    searchQuery = searchInput.value.toLowerCase().trim();
 
-        if (response.success) {
-            AppState.currentProject = response.data;
-            populateFormWithProjectData(response.data);
-            updateProjectStatus();
-            closeModal('projectListModal');
-            showNotification(`Đã tải project: ${response.data.name}`, 'success');
+    // Filter projects based on search query
+    if (searchQuery === '') {
+        filteredProjects = [...allProjects];
+    } else {
+        filteredProjects = allProjects.filter(project =>
+            project.name.toLowerCase().includes(searchQuery) ||
+            (project.description && project.description.toLowerCase().includes(searchQuery))
+        );
+    }
+
+    // Reset to first page
+    currentPage = 1;
+
+    // Re-render with new filter
+    renderProjectListWithPagination();
+}
+
+/**
+ * Clear project search
+ */
+function clearProjectSearch() {
+    const searchInput = document.getElementById('projectSearchInput');
+    if (searchInput) {
+        searchInput.value = '';
+        searchQuery = '';
+        filteredProjects = [...allProjects];
+        currentPage = 1;
+        renderProjectListWithPagination();
+    }
+}
+
+/**
+ * Sort projects
+ */
+function sortProjects() {
+    const sortSelect = document.getElementById('projectSortBy');
+    sortBy = sortSelect.value;
+
+    filteredProjects.sort((a, b) => {
+        switch (sortBy) {
+            case 'name':
+                return a.name.localeCompare(b.name);
+            case 'createdAt':
+                return new Date(b.createdAt) - new Date(a.createdAt);
+            case 'updatedAt':
+            default:
+                return new Date(b.updatedAt) - new Date(a.updatedAt);
         }
-    } catch (error) {
-        console.error('Error loading project from list:', error);
-        showNotification('Lỗi khi tải project', 'error');
-    }
+    });
+
+    currentPage = 1;
+    renderProjectListWithPagination();
 }
-
-
 
 /**
- * Generate JSON output
+ * Change page size
  */
-function generateJSON() {
-    try {
-        const formData = collectFormData();
-        const jsonOutput = JSON.stringify(formData.data, null, 2);
+function changePageSize() {
+    const pageSizeSelect = document.getElementById('projectPageSize');
+    pageSize = parseInt(pageSizeSelect.value);
+    currentPage = 1;
+    renderProjectListWithPagination();
+}
 
-        document.getElementById('jsonOutput').value = jsonOutput;
-        showNotification('JSON đã được tạo thành công', 'success');
-    } catch (error) {
-        console.error('Error generating JSON:', error);
-        showNotification('Lỗi khi tạo JSON', 'error');
+/**
+ * Navigate to previous page
+ */
+function previousPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        renderProjectListWithPagination();
     }
 }
+
+/**
+ * Navigate to next page
+ */
+function nextPage() {
+    const totalPages = Math.ceil(filteredProjects.length / pageSize);
+    if (currentPage < totalPages) {
+        currentPage++;
+        renderProjectListWithPagination();
+    }
+}
+
+/**
+ * Go to specific page
+ */
+function goToPage(page) {
+    const totalPages = Math.ceil(filteredProjects.length / pageSize);
+    if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        renderProjectListWithPagination();
+    }
+}
+
+/**
+ * Render project list with pagination
+ */
+function renderProjectListWithPagination() {
+    const projectListDiv = document.getElementById('projectList');
+    const paginationDiv = document.getElementById('projectPagination');
+
+    if (!projectListDiv) return;
+
+    // Calculate pagination
+    const totalProjects = filteredProjects.length;
+    const totalPages = Math.ceil(totalProjects / pageSize);
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalProjects);
+    const currentPageProjects = filteredProjects.slice(startIndex, endIndex);
+
+    // Render projects
+    if (currentPageProjects.length === 0) {
+        projectListDiv.innerHTML = searchQuery
+            ? '<div class="no-projects">🔍 Không tìm thấy project nào phù hợp</div>'
+            : '<div class="no-projects">📂 Chưa có project nào</div>';
+    } else {
+        projectListDiv.innerHTML = currentPageProjects.map(project => `
+            <div class="project-item" onclick="loadProjectFromList('${project.id}')">
+                <div class="project-info">
+                    <div class="project-name">${project.name}</div>
+                    <div class="project-meta">
+                        <span>📅 Cập nhật: ${Utils.formatDate(project.updatedAt)}</span>
+                        <span>🆕 Tạo: ${Utils.formatDate(project.createdAt)}</span>
+                        <span>🔧 ID: ${project.id.substring(0, 8)}...</span>
+                    </div>
+                </div>
+                <div class="project-actions">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteProjectFromList('${project.id}', '${project.name}')" title="Xóa project">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Render pagination
+    if (paginationDiv) {
+        if (totalPages <= 1) {
+            paginationDiv.style.display = 'none';
+        } else {
+            paginationDiv.style.display = 'flex';
+            renderPagination(totalProjects, totalPages, startIndex, endIndex);
+        }
+    }
+}
+
+/**
+ * Render pagination controls
+ */
+function renderPagination(totalProjects, totalPages, startIndex, endIndex) {
+    const paginationInfo = document.getElementById('paginationInfo');
+    const pageNumbers = document.getElementById('pageNumbers');
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+
+    // Update info
+    if (paginationInfo) {
+        const searchText = searchQuery ? ` (tìm kiếm: "${searchQuery}")` : '';
+        paginationInfo.textContent = `Hiển thị ${startIndex + 1}-${endIndex} của ${totalProjects} projects${searchText}`;
+    }
+
+    // Update buttons
+    if (prevBtn) {
+        prevBtn.disabled = currentPage <= 1;
+    }
+    if (nextBtn) {
+        nextBtn.disabled = currentPage >= totalPages;
+    }
+
+    // Render page numbers
+    if (pageNumbers) {
+        const pageNumbersHtml = [];
+        const maxVisiblePages = 5;
+
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+        // Adjust start if we're near the end
+        if (endPage - startPage < maxVisiblePages - 1) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+
+        // First page
+        if (startPage > 1) {
+            pageNumbersHtml.push(`<span class="page-number" onclick="goToPage(1)">1</span>`);
+            if (startPage > 2) {
+                pageNumbersHtml.push(`<span class="page-number disabled">...</span>`);
+            }
+        }
+
+        // Visible pages
+        for (let i = startPage; i <= endPage; i++) {
+            const activeClass = i === currentPage ? 'active' : '';
+            pageNumbersHtml.push(`<span class="page-number ${activeClass}" onclick="goToPage(${i})">${i}</span>`);
+        }
+
+        // Last page
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                pageNumbersHtml.push(`<span class="page-number disabled">...</span>`);
+            }
+            pageNumbersHtml.push(`<span class="page-number" onclick="goToPage(${totalPages})">${totalPages}</span>`);
+        }
+
+        pageNumbers.innerHTML = pageNumbersHtml.join('');
+    }
+}
+
+
+
+// Duplicate function removed - using the one above with validation
 
 /**
  * Copy JSON to clipboard
@@ -1485,32 +2346,7 @@ async function copyToClipboard() {
     }
 }
 
-/**
- * Download JSON file
- */
-function downloadJSON() {
-    const jsonOutput = document.getElementById('jsonOutput');
-
-    if (!jsonOutput.value) {
-        generateJSON();
-    }
-
-    const projectName = document.getElementById('projectName').value.trim() || 'addata';
-    const filename = `${projectName}_addata.json`;
-
-    const blob = new Blob([jsonOutput.value], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    showNotification(`Đã tải xuống: ${filename}`, 'success');
-}
+// Duplicate function removed - using enhanced version above
 
 /**
  * Add bidfloor ID input
@@ -1778,3 +2614,291 @@ async function processImport() {
         showNotification('Lỗi khi import project', 'error');
     }
 }
+
+/**
+ * Setup auto-save event listeners
+ */
+function setupAutoSave() {
+    const form = document.getElementById('adDataForm');
+    if (!form) return;
+
+    // Add event listeners for form changes
+    form.addEventListener('input', (e) => {
+        // Skip if it's the script selector or project name
+        if (e.target.id === 'currentScriptSelector' || e.target.id === 'projectNameText') {
+            return;
+        }
+        markDirty();
+    });
+
+    form.addEventListener('change', (e) => {
+        // Skip if it's the script selector or project name
+        if (e.target.id === 'currentScriptSelector' || e.target.id === 'projectNameText') {
+            return;
+        }
+        markDirty();
+    });
+
+    // Add listeners for specific input types
+    const textInputs = form.querySelectorAll('input[type="text"], input[type="number"], textarea');
+    textInputs.forEach(input => {
+        input.addEventListener('input', () => {
+            if (input.id !== 'currentScriptSelector' && input.id !== 'projectNameText') {
+                markDirty();
+            }
+        });
+    });
+
+    const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            markDirty();
+        });
+    });
+
+    // Prevent data loss on page unload
+    window.addEventListener('beforeunload', (e) => {
+        if (isDirty) {
+            e.preventDefault();
+            return 'Bạn có thay đổi chưa được lưu. Bạn có chắc muốn rời khỏi trang?';
+        }
+    });
+
+    console.log('✅ Auto-save event listeners setup complete');
+}
+
+/**
+ * Clear all Ad Unit IDs
+ */
+function clearAllAdIds() {
+    const adIdInputs = ['interstitialId', 'rewardedVideoId', 'bannerId', 'aoaId'];
+
+    adIdInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.value = '';
+            input.classList.remove('valid', 'invalid');
+        }
+    });
+
+    markDirty();
+    showNotification('🧹 Đã xóa tất cả Ad Unit IDs', 'info', 2000);
+}
+
+/**
+ * Generate sample Ad Unit IDs
+ */
+function generateSampleAdIds() {
+    const generateId = () => {
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < 16; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    };
+
+    const adIdInputs = [
+        { id: 'interstitialId', prefix: 'int' },
+        { id: 'rewardedVideoId', prefix: 'rew' },
+        { id: 'bannerId', prefix: 'ban' },
+        { id: 'aoaId', prefix: 'aoa' }
+    ];
+
+    adIdInputs.forEach(({ id, prefix }) => {
+        const input = document.getElementById(id);
+        if (input) {
+            // Generate ID with prefix for easier identification
+            const randomPart = generateId().substring(3); // 13 chars
+            const sampleId = prefix + randomPart; // 16 chars total
+            input.value = sampleId;
+            validateAdId(input);
+        }
+    });
+
+    markDirty();
+    showNotification('🎲 Đã tạo sample Ad Unit IDs', 'success', 2000);
+}
+
+/**
+ * Validate all Ad Unit IDs
+ */
+function validateAllAdIds() {
+    const adIdInputs = ['interstitialId', 'rewardedVideoId', 'bannerId', 'aoaId'];
+    let allValid = true;
+    let validCount = 0;
+
+    adIdInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input && input.value.trim()) {
+            const isValid = validateAdId(input);
+            if (isValid) {
+                validCount++;
+            } else {
+                allValid = false;
+            }
+        }
+    });
+
+    if (allValid && validCount > 0) {
+        showNotification(`✅ Tất cả ${validCount} Ad Unit IDs đều hợp lệ`, 'success', 3000);
+    } else if (validCount === 0) {
+        showNotification('ℹ️ Chưa có Ad Unit ID nào để validate', 'info', 2000);
+    } else {
+        showNotification(`⚠️ Có ${validCount} IDs hợp lệ, vui lòng kiểm tra lại các IDs khác`, 'warning', 4000);
+    }
+}
+
+/**
+ * Clear all Bidfloor IDs
+ */
+function clearAllBidfloorIds() {
+    const bidfloorInputs = [
+        'interstitialDefaultId',
+        'rewardedDefaultId',
+        'bidfloorBanner'
+    ];
+
+    // Clear default IDs
+    bidfloorInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.value = '';
+            input.classList.remove('valid', 'invalid');
+        }
+    });
+
+    // Clear bidfloor ID arrays
+    ['interstitial', 'rewarded'].forEach(type => {
+        const container = document.getElementById(`${type}BidfloorIds`);
+        if (container) {
+            const arrayInput = container.querySelector('.array-input');
+            if (arrayInput) {
+                // Keep only the first row and clear its value
+                const rows = arrayInput.querySelectorAll('.array-input-row');
+                rows.forEach((row, index) => {
+                    if (index === 0) {
+                        const input = row.querySelector('input');
+                        if (input) {
+                            input.value = '';
+                            input.classList.remove('valid', 'invalid');
+                        }
+                    } else {
+                        row.remove();
+                    }
+                });
+            }
+        }
+    });
+
+    markDirty();
+    showNotification('🧹 Đã xóa tất cả Bidfloor IDs', 'info', 2000);
+}
+
+/**
+ * Generate sample Bidfloor IDs
+ */
+function generateSampleBidfloorIds() {
+    const generateId = () => {
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < 16; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    };
+
+    const bidfloorInputs = [
+        { id: 'interstitialDefaultId', prefix: 'bid' },
+        { id: 'rewardedDefaultId', prefix: 'rew' },
+        { id: 'bidfloorBanner', prefix: 'ban' }
+    ];
+
+    // Generate default IDs
+    bidfloorInputs.forEach(({ id, prefix }) => {
+        const input = document.getElementById(id);
+        if (input) {
+            const randomPart = generateId().substring(3);
+            const sampleId = prefix + randomPart;
+            input.value = sampleId;
+            validateAdId(input);
+        }
+    });
+
+    // Generate sample bidfloor arrays
+    ['interstitial', 'rewarded'].forEach(type => {
+        const container = document.getElementById(`${type}BidfloorIds`);
+        if (container) {
+            const firstInput = container.querySelector('input');
+            if (firstInput) {
+                const randomPart = generateId().substring(3);
+                const sampleId = type.substring(0, 3) + randomPart;
+                firstInput.value = sampleId;
+                validateAdId(firstInput);
+            }
+        }
+    });
+
+    markDirty();
+    showNotification('🎲 Đã tạo sample Bidfloor IDs', 'success', 2000);
+}
+
+/**
+ * Validate all Bidfloor IDs
+ */
+function validateAllBidfloorIds() {
+    const bidfloorInputs = [
+        'interstitialDefaultId',
+        'rewardedDefaultId',
+        'bidfloorBanner'
+    ];
+
+    let allValid = true;
+    let validCount = 0;
+
+    // Validate default IDs
+    bidfloorInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input && input.value.trim()) {
+            const isValid = validateAdId(input);
+            if (isValid) {
+                validCount++;
+            } else {
+                allValid = false;
+            }
+        }
+    });
+
+    // Validate bidfloor arrays
+    ['interstitial', 'rewarded'].forEach(type => {
+        const container = document.getElementById(`${type}BidfloorIds`);
+        if (container) {
+            const inputs = container.querySelectorAll('input[maxlength="16"]');
+            inputs.forEach(input => {
+                if (input.value.trim()) {
+                    const isValid = validateAdId(input);
+                    if (isValid) {
+                        validCount++;
+                    } else {
+                        allValid = false;
+                    }
+                }
+            });
+        }
+    });
+
+    if (allValid && validCount > 0) {
+        showNotification(`✅ Tất cả ${validCount} Bidfloor IDs đều hợp lệ`, 'success', 3000);
+    } else if (validCount === 0) {
+        showNotification('ℹ️ Chưa có Bidfloor ID nào để validate', 'info', 2000);
+    } else {
+        showNotification(`⚠️ Có ${validCount} IDs hợp lệ, vui lòng kiểm tra lại các IDs khác`, 'warning', 4000);
+    }
+}
+
+// Initialize auto-save when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    setupAutoSave();
+    hideDataConfiguration(); // Hide data configuration on page load
+    updateAutoSaveToggleButton(); // Setup auto-save toggle button
+});

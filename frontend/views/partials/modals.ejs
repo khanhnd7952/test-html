@@ -13,8 +13,8 @@
             </div>
             <div class="form-group">
                 <label for="newProjectScriptId">Script ID:</label>
-                <input type="text" id="newProjectScriptId" placeholder="Nhập Script ID (tùy chọn)..." maxlength="50">
-                <small style="color: #6c757d;">Định danh script cho project</small>
+                <input type="text" id="newProjectScriptId" placeholder="Để trống sẽ tạo script 'default_script'..." maxlength="50">
+                <small style="color: #6c757d;">Định danh script cho project. Để trống sẽ tạo script "Default"</small>
             </div>
             <div class="form-group">
                 <label>
@@ -33,6 +33,33 @@
     </div>
 </div>
 
+<!-- Rename Project Modal -->
+<div id="renameProjectModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>✏️ Đổi tên Project</h2>
+            <span class="close" onclick="closeModal('renameProjectModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="currentProjectNameDisplay">Tên hiện tại:</label>
+                <input type="text" id="currentProjectNameDisplay" readonly style="background-color: #f8f9fa; color: #6c757d;">
+            </div>
+            <div class="form-group">
+                <label for="newProjectNameInput">Tên mới:</label>
+                <input type="text" id="newProjectNameInput" placeholder="Nhập tên project mới..." maxlength="100" required
+                       oninput="validateRenameInput()">
+                <small style="color: #6c757d;">Tên project phải duy nhất và không trùng với project khác</small>
+                <div id="renameValidationMessage" class="validation-message" style="display: none;"></div>
+            </div>
+            <div class="button-group">
+                <button type="button" class="btn btn-warning" onclick="processRenameProject()">✏️ Đổi tên</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('renameProjectModal')">❌ Hủy</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Project List Modal -->
 <div id="projectListModal" class="modal">
     <div class="modal-content">
@@ -41,8 +68,46 @@
             <span class="close" onclick="closeModal('projectListModal')">&times;</span>
         </div>
         <div class="modal-body">
+            <!-- Search and Filter Controls -->
+            <div class="project-controls-header">
+                <div class="search-container">
+                    <input type="text" id="projectSearchInput" placeholder="🔍 Tìm kiếm project..." class="search-input">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="clearProjectSearch()">✖️ Clear</button>
+                </div>
+                <div class="view-controls">
+                    <label>
+                        <select id="projectSortBy" onchange="sortProjects()">
+                            <option value="updatedAt">📅 Mới nhất</option>
+                            <option value="name">📝 Tên A-Z</option>
+                            <option value="createdAt">🆕 Tạo mới nhất</option>
+                        </select>
+                    </label>
+                    <label>
+                        <select id="projectPageSize" onchange="changePageSize()">
+                            <option value="10">10 items</option>
+                            <option value="20" selected>20 items</option>
+                            <option value="50">50 items</option>
+                            <option value="100">100 items</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Project List -->
             <div id="projectList" class="project-list">
                 <div class="loading-projects">Đang tải danh sách projects...</div>
+            </div>
+
+            <!-- Pagination -->
+            <div id="projectPagination" class="pagination-container" style="display: none;">
+                <div class="pagination-info">
+                    <span id="paginationInfo">Hiển thị 1-20 của 50 projects</span>
+                </div>
+                <div class="pagination-controls">
+                    <button type="button" class="btn btn-sm" id="prevPageBtn" onclick="previousPage()" disabled>⬅️ Trước</button>
+                    <span id="pageNumbers" class="page-numbers"></span>
+                    <button type="button" class="btn btn-sm" id="nextPageBtn" onclick="nextPage()">Sau ➡️</button>
+                </div>
             </div>
         </div>
     </div>
@@ -131,17 +196,17 @@
             <form id="addScriptForm">
                 <div class="form-group">
                     <label for="newScriptId">Script ID:</label>
-                    <input type="text" id="newScriptId" name="scriptId" placeholder="VD: GAME_001" maxlength="50" required list="scriptIdDatalist">
+                    <input type="text" id="newScriptId" name="scriptId" placeholder="Để trống sẽ tạo 'default_script'..." maxlength="50" list="scriptIdDatalist">
                     <datalist id="scriptIdDatalist">
                         <!-- Script IDs will be loaded here -->
                     </datalist>
-                    <small>Định danh duy nhất cho script</small>
+                    <small>Định danh duy nhất cho script. Để trống sẽ tạo script "Default"</small>
                 </div>
 
                 <div class="form-group">
                     <label for="newScriptName">Tên Script:</label>
-                    <input type="text" id="newScriptName" name="name" placeholder="VD: Game Script 1" maxlength="100" required>
-                    <small>Tên hiển thị cho script</small>
+                    <input type="text" id="newScriptName" name="name" placeholder="Để trống sẽ tự động đặt tên..." maxlength="100">
+                    <small>Tên hiển thị của script. Để trống sẽ tự động đặt tên theo Script ID</small>
                 </div>
 
                 <div class="form-group">
